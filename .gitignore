@@ -1,0 +1,35 @@
+# dependencies
+node_modules
+
+# build output
+dist
+*.tsbuildinfo
+
+# caches
+coverage
+.eslintcache
+.vitest
+
+# packaging
+*.tgz
+
+# logs
+*.log
+npm-debug.log*
+
+# env
+.env
+.env.*
+!.env.example
+
+# os / editor
+.DS_Store
+Thumbs.db
+.idea
+
+# provisioning artifacts that may be produced when testing the CLI locally
+hephaestus.lock.yaml
+.claude
+.github
+.codex
+.hephaestus
