@@ -62,7 +62,7 @@ export async function runInventory(options: InventoryOptions): Promise<void> {
   for (const output of outputs) {
     for (const file of output.files) {
       const lockHash: string | undefined = previousLockHash(lockfile, output, file.path);
-      const diskContents: string | null = await readFileIfExists(
+      const diskContents: Buffer | null = await readFileIfExists(
         toProjectPath(projectRoot, file.path),
       );
       const diskHash: string | null = diskContents === null ? null : hashContents(diskContents);

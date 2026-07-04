@@ -4,12 +4,22 @@ import type { CanonicalAgent, CanonicalSkill, HarnessId, Tier } from "../core/sc
 export interface RenderedFile {
   /** Path relative to the project root, always in POSIX (forward-slash) form. */
   path: string;
-  contents: string;
+  /** UTF-8 text for rendered/markdown output, or raw bytes for a binary bundled skill resource. */
+  contents: string | Uint8Array;
 }
 
 /** Per-render context passed to harness methods. */
 export interface RenderContext {
   harnessId: HarnessId;
+  /**
+   * Project-relative, POSIX-form path to the handoff dir (e.g. `.hephaestus`) —
+   * used to expand `{{handoff.dir}}` as-is. Left unresolved deliberately: this
+   * value is baked into rendered agent files, which may be committed and
+   * cloned to a different machine/path, so it must not carry an
+   * environment-specific absolute prefix. Agents resolve it against the
+   * project root themselves at runtime (see the handoff directory resolution
+   * rule in canonical skill docs).
+   */
   handoffDir: string;
   tier: Tier;
 }

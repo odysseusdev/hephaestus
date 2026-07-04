@@ -22,6 +22,33 @@ function unwrap<T>(value: T | symbol): T {
   return value as T;
 }
 
+/** Whether the current process is attached to an interactive terminal that can serve a prompt. */
+export function isInteractive(): boolean {
+  return Boolean(process.stdin.isTTY);
+}
+
+/**
+ * Throw a clear, actionable error when stdin is not a TTY, instead of letting a
+ * clack prompt hang indefinitely or crash with a raw Node "unsettled top-level
+ * await" warning. Callers with a specific non-interactive alternative (a flag,
+ * a positional argument) should call this themselves before starting their
+ * interactive flow so the message can name that alternative; the check here
+ * is a defense-in-depth fallback for any prompt call that skips it.
+ *
+ * @param nonInteractiveHint - A short suggestion for accomplishing the same
+ *   operation without a prompt. Defaults to a generic re-run suggestion.
+ * @throws {Error} If stdin is not a TTY.
+ */
+export function assertInteractive(
+  nonInteractiveHint = "re-run this command in an interactive terminal.",
+): void {
+  if (!isInteractive()) {
+    throw new Error(
+      `this command needs an interactive terminal to prompt for input, but stdin is not a TTY. ${nonInteractiveHint}`,
+    );
+  }
+}
+
 /** Print the themed intro banner with a prominent header and per-command tagline. */
 export function intro(command: string, subtitle: string): void {
   const header = `  ${theme.fire("󰈸")}  ${bold(theme.accent("hephaestus"))}  ${dim("·")}  ${dim(ENGINE_VERSION)}`;
@@ -49,6 +76,7 @@ export async function multiselect<T extends string>(
   initialValues: T[] = [],
   required = true,
 ): Promise<T[]> {
+  assertInteractive();
   // Drive clack with a concrete `string` type so its conditional Option type resolves;
   // values are already strings (T extends string).
   const result = await clack.multiselect({
@@ -64,12 +92,42 @@ export async function multiselect<T extends string>(
   return unwrap(result) as T[];
 }
 
+/**
+ * Grouped multi-select prompt. Options are bucketed under named categories; selecting a
+ * category header toggles every option beneath it. Returns the chosen values, flattened
+ * across categories.
+ */
+export async function groupMultiselect<T extends string>(
+  message: string,
+  groups: Record<string, PromptOption<T>[]>,
+  initialValues: T[] = [],
+  required = true,
+): Promise<T[]> {
+  assertInteractive();
+  const options: Record<string, { value: string; label: string; hint?: string }[]> = {};
+  for (const [category, categoryOptions] of Object.entries(groups)) {
+    options[category] = categoryOptions.map((option) => ({
+      value: option.value as string,
+      label: option.label,
+      hint: option.hint,
+    }));
+  }
+  const result = await clack.groupMultiselect({
+    message: theme.text(message),
+    options,
+    initialValues: initialValues as string[],
+    required,
+  });
+  return unwrap(result) as T[];
+}
+
 /** Single-select prompt. Returns the chosen value. */
 export async function select<T extends string>(
   message: string,
   options: PromptOption<T>[],
   initialValue?: T,
 ): Promise<T> {
+  assertInteractive();
   const result = await clack.select({
     message: theme.text(message),
     options: options.map((option) => ({
@@ -84,6 +142,7 @@ export async function select<T extends string>(
 
 /** Text input prompt with an optional default value. */
 export async function text(message: string, defaultValue: string): Promise<string> {
+  assertInteractive();
   const result = await clack.text({
     message: theme.text(message),
     placeholder: defaultValue,
@@ -95,6 +154,7 @@ export async function text(message: string, defaultValue: string): Promise<strin
 
 /** Yes/no confirmation prompt. */
 export async function confirm(message: string, initialValue = true): Promise<boolean> {
+  assertInteractive();
   const result = await clack.confirm({ message: theme.text(message), initialValue });
   return unwrap(result);
 }

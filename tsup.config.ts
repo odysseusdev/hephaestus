@@ -12,7 +12,7 @@ export default defineConfig([
     target: "node18",
     platform: "node",
     clean: true,
-    sourcemap: true,
+    sourcemap: false,
     banner: { js: "#!/usr/bin/env node" },
   },
   {
@@ -21,6 +21,6 @@ export default defineConfig([
     target: "node18",
     platform: "node",
     dts: true,
-    sourcemap: true,
+    sourcemap: false,
   },
 ]);

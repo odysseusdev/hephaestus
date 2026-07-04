@@ -6,13 +6,33 @@ import {
   validateCanonDir,
   writeGlobalConfig,
 } from "../core/globalconfig.js";
-import { intro, note, outro, text } from "../ui/prompts.js";
+import { assertInteractive, intro, note, outro, text } from "../ui/prompts.js";
 import { theme } from "../ui/theme.js";
 
 /** Options accepted by the `bind` command. */
 export interface BindOptions {
   /** Optional path provided as a positional argument. Prompts interactively if absent. */
   path?: string;
+}
+
+/**
+ * Resolve a raw (possibly `~`-prefixed) path to an absolute canon directory and
+ * validate it. Prints the themed error and cancellation outro on failure so
+ * both the `--path` and interactive branches of `runBind` behave identically.
+ *
+ * @returns The resolved absolute path, or `null` if validation failed (the
+ *   caller should return immediately in that case).
+ */
+function resolveAndValidate(raw: string): string | null {
+  const canonDir: string = resolve(expandHome(raw));
+  const validationError: string | null = validateCanonDir(canonDir);
+  if (validationError) {
+    note(theme.danger(validationError), "invalid path");
+    outro("bind cancelled.");
+    process.exitCode = 1;
+    return null;
+  }
+  return canonDir;
 }
 
 /**
@@ -23,30 +43,17 @@ export interface BindOptions {
 export async function runBind(options: BindOptions): Promise<void> {
   intro("bind", "anchor the workshop - bind to a canonical source.");
 
-  let canonDir: string;
+  if (!options.path) {
+    assertInteractive("pass the path directly instead: `hephaestus bind <path>`.");
+  }
 
-  if (options.path) {
-    canonDir = resolve(expandHome(options.path));
-    const validationError: string | null = validateCanonDir(canonDir);
-    if (validationError) {
-      note(theme.danger(validationError), "invalid path");
-      outro("bind cancelled.");
-      process.exitCode = 1;
-      return;
-    }
-  } else {
-    const raw: string = await text(
-      "path to your canonical agents and skills directory?",
-      "~/my-agents",
-    );
-    canonDir = resolve(expandHome(raw));
-    const validationError: string | null = validateCanonDir(canonDir);
-    if (validationError) {
-      note(theme.danger(validationError), "invalid path");
-      outro("bind cancelled.");
-      process.exitCode = 1;
-      return;
-    }
+  const raw: string =
+    options.path ??
+    (await text("path to your canonical agents and skills directory?", "~/my-agents"));
+
+  const canonDir: string | null = resolveAndValidate(raw);
+  if (canonDir === null) {
+    return;
   }
 
   await writeGlobalConfig({ canonDir });

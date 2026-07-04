@@ -2,10 +2,29 @@ import { randomBytes } from "node:crypto";
 import { mkdir, readFile, rename, rm, rmdir, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, resolve, sep } from "node:path";
 
-/** Convert a project-relative POSIX path to an absolute OS-native path. */
+/**
+ * Convert a project-relative POSIX path to an absolute OS-native path, rooted
+ * under `projectRoot`.
+ *
+ * @throws {Error} If the resolved path escapes `projectRoot` — via `../`
+ *   segments or by `relativePosixPath` itself being absolute. This guards every
+ *   caller that persists or prompts for a path (e.g. the `handoffDir` prompt
+ *   value in `forge`) against writing or deleting outside the project.
+ */
 export function toProjectPath(projectRoot: string, relativePosixPath: string): string {
   const nativeRelative: string = relativePosixPath.split("/").join(sep);
-  return resolve(projectRoot, nativeRelative);
+  const resolvedRoot: string = resolve(projectRoot);
+  const resolvedPath: string = resolve(resolvedRoot, nativeRelative);
+
+  const isWithinRoot: boolean =
+    resolvedPath === resolvedRoot || resolvedPath.startsWith(resolvedRoot + sep);
+  if (!isWithinRoot) {
+    throw new Error(
+      `refusing to resolve "${relativePosixPath}" outside the project root (${resolvedRoot}).`,
+    );
+  }
+
+  return resolvedPath;
 }
 
 /** Ensure a directory exists, creating parent directories as needed. */
@@ -13,10 +32,18 @@ export async function ensureDir(dir: string): Promise<void> {
   await mkdir(dir, { recursive: true });
 }
 
-/** Read a file as UTF-8, returning null if it does not exist. Other IO errors are rethrown with context. */
-export async function readFileIfExists(filePath: string): Promise<string | null> {
+/**
+ * Read a file's raw bytes, returning null if it does not exist. Other IO errors
+ * are rethrown with context.
+ *
+ * Deliberately binary-safe (no encoding is forced): callers that know a file is
+ * text (e.g. the lockfile, JSON config) decode it themselves with
+ * `.toString("utf8")`, while callers handling bundled skill resources (which may
+ * be binary) can compare/write the bytes untouched.
+ */
+export async function readFileIfExists(filePath: string): Promise<Buffer | null> {
   try {
-    return await readFile(filePath, "utf8");
+    return await readFile(filePath);
   } catch (error: unknown) {
     if (isNotFound(error)) {
       return null;
@@ -28,8 +55,14 @@ export async function readFileIfExists(filePath: string): Promise<string | null>
 /**
  * Atomically write a file: write to a sibling temp file then rename into place,
  * so a crash mid-write cannot leave a half-written target. Creates parent dirs.
+ *
+ * Accepts either UTF-8 text or raw bytes so binary bundled skill resources
+ * round-trip losslessly through the same write path as rendered text files.
  */
-export async function writeFileAtomic(filePath: string, contents: string): Promise<void> {
+export async function writeFileAtomic(
+  filePath: string,
+  contents: string | Uint8Array,
+): Promise<void> {
   if (!isAbsolute(filePath)) {
     throw new Error(`writeFileAtomic requires an absolute path, received: ${filePath}`);
   }
@@ -39,7 +72,11 @@ export async function writeFileAtomic(filePath: string, contents: string): Promi
 
   const tempPath: string = join(dir, `.${randomBytes(6).toString("hex")}.tmp`);
   try {
-    await writeFile(tempPath, contents, "utf8");
+    if (typeof contents === "string") {
+      await writeFile(tempPath, contents, "utf8");
+    } else {
+      await writeFile(tempPath, contents);
+    }
     await rename(tempPath, filePath);
   } catch (error: unknown) {
     // Best-effort cleanup of the temp file; ignore if it is already gone.

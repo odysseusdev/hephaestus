@@ -26,10 +26,10 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 .idea
+.vscode
 
 # provisioning artifacts that may be produced when testing the CLI locally
 hephaestus.lock.yaml
 .claude
-.github
 .codex
 .hephaestus

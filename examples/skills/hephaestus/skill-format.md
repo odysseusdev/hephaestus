@@ -4,11 +4,11 @@ description: canonical skill file format and body structure for hephaestus skill
 
 # skill format
 
-apply when authoring or reviewing a canonical skill file (`canon/skills/<id>/<name>.md`).
+apply when authoring or reviewing a canonical skill file (`<content-dir>/skills/<id>/<name>.md`).
 
 ## directory structure
 
-each skill is a directory under `canon/skills/<slug>/`. the slug is lowercase, hyphen-separated.
+each skill is a directory under `<content-dir>/skills/<slug>/`. the slug is lowercase, hyphen-separated.
 
 - at least one `*.md` content file is required. directories with no `.md` files are silently skipped.
 - non-markdown files (scripts, references, etc.) are carried through untouched.

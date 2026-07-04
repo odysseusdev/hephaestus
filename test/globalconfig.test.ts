@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -48,6 +48,26 @@ describe("readGlobalConfig", () => {
     await writeFile(configPath, JSON.stringify({ canonDir: "" }), "utf8");
     expect(() => readGlobalConfig(configPath)).toThrow(/failed validation/);
   });
+
+  it("throws when canonDir is a relative path", async () => {
+    await writeFile(configPath, JSON.stringify({ canonDir: "relative/path" }), "utf8");
+    expect(() => readGlobalConfig(configPath)).toThrow(/absolute/);
+  });
+
+  it("wraps an IO error (e.g. permission denied) with a friendly 'failed to read' message", async () => {
+    // Root bypasses file permission bits on most systems, making this
+    // unreliable when the test process itself runs as root (e.g. some CI/container setups).
+    if (process.getuid?.() === 0) {
+      return;
+    }
+    await writeFile(configPath, JSON.stringify({ canonDir: tempDir }), "utf8");
+    await chmod(configPath, 0o000);
+    try {
+      expect(() => readGlobalConfig(configPath)).toThrow(/Failed to read/);
+    } finally {
+      await chmod(configPath, 0o644);
+    }
+  });
 });
 
 describe("writeGlobalConfig", () => {
@@ -55,6 +75,12 @@ describe("writeGlobalConfig", () => {
     const cfg = { canonDir: "/some/absolute/path" };
     await writeGlobalConfig(cfg, configPath);
     expect(readGlobalConfig(configPath)).toEqual(cfg);
+  });
+
+  it("rejects a relative canonDir", async () => {
+    await expect(writeGlobalConfig({ canonDir: "relative/path" }, configPath)).rejects.toThrow(
+      /absolute/,
+    );
   });
 
   it("creates parent directories", async () => {

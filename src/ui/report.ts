@@ -1,7 +1,10 @@
 import type { RenderedOutput } from "../core/provision.js";
-import type { HarnessId } from "../core/schema.js";
+import type { CanonicalAgent, HarnessId } from "../core/schema.js";
 import type { SyncDecision } from "../core/sync.js";
 import { bold, dim, theme } from "./theme.js";
+
+/** Category key agents fall under when they declare no explicit `category`. */
+const GENERAL_CATEGORY = "general";
 
 /** Tally of sync decisions, for the closing summary line. */
 export interface SyncCounts {
@@ -25,6 +28,51 @@ const DECISION_STYLE: Record<SyncDecision, { glyph: string; paint: (s: string) =
 export function decisionLine(decision: SyncDecision, path: string): string {
   const style = DECISION_STYLE[decision];
   return `${style.paint(style.glyph)} ${style.paint(decision.padEnd(6))} ${theme.text(path)}`;
+}
+
+/**
+ * Group canonical agents into named categories for the forge select prompt, falling back
+ * to "general" when an agent declares none. Category keys are sorted alphabetically, with
+ * "general" always last.
+ */
+export function groupAgentsByCategory(agents: CanonicalAgent[]): Map<string, CanonicalAgent[]> {
+  const byCategory: Map<string, CanonicalAgent[]> = new Map();
+
+  for (const agent of agents) {
+    const category: string = agent.category ?? GENERAL_CATEGORY;
+    const bucket: CanonicalAgent[] = byCategory.get(category) ?? [];
+    bucket.push(agent);
+    byCategory.set(category, bucket);
+  }
+
+  const sortedKeys: string[] = [...byCategory.keys()].sort((a, b) => {
+    if (a === GENERAL_CATEGORY) return 1;
+    if (b === GENERAL_CATEGORY) return -1;
+    return a.localeCompare(b);
+  });
+
+  const sorted: Map<string, CanonicalAgent[]> = new Map();
+  for (const key of sortedKeys) {
+    sorted.set(key, byCategory.get(key) as CanonicalAgent[]);
+  }
+  return sorted;
+}
+
+/**
+ * Reference block listing every agent's name and short (<=80 char) `summary`,
+ * one per line, for display via `note()` before the select prompt. Uses
+ * `summary` rather than the unbounded `description` so lines never wrap or
+ * overflow the terminal width in the forge preview box.
+ */
+export function agentDescriptionsBlock(agents: CanonicalAgent[]): string {
+  const grouped: Map<string, CanonicalAgent[]> = groupAgentsByCategory(agents);
+  const lines: string[] = [];
+  for (const bucket of grouped.values()) {
+    for (const agent of bucket) {
+      lines.push(`${theme.text(agent.name)} — ${agent.summary}`);
+    }
+  }
+  return lines.join("\n");
 }
 
 /** Render the per-harness file summary for the forge preview. */

@@ -12,7 +12,7 @@ i am not accepting pull requests or direct contributions to this repository.
 
 - **fork** — clone it, adapt it, make your own version for your own use. the MIT license permits this freely.
 - **report bugs** — open an issue if you find something genuinely broken. no guarantees on response time or resolution.
-- **use the api** — the engine ships a [public programmatic api](src/index.ts) if you want to build on top of it.
+- **use the api** — the engine ships a [public programmatic api](src/index.ts) if you want to build on top of it. it is ESM-only by design (`import`, not `require`) — a CommonJS consumer needs a dynamic `import()`.
 
 ## what you can't do
 

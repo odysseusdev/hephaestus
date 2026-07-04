@@ -29,6 +29,7 @@ const SKILL: CanonicalSkill = {
 const AGENT: CanonicalAgent = {
   id: "planner",
   name: "planner",
+  summary: "plans work",
   description: "plans work for a given feature",
   tier: "fast",
   tools: ["read"],
@@ -103,6 +104,24 @@ describe("provision (init write path)", () => {
     expect(lockfile?.handoffDir).toBe("docs");
     expect(lockfile?.harnesses).toEqual(["claude"]);
     expect(Object.keys(lockfile?.agents ?? {})).toContain("planner");
+  });
+
+  it("writes a binary bundled skill resource to disk byte-for-byte, unmodified", async () => {
+    const binaryBytes = Uint8Array.from([0x00, 0x80, 0xff, 0x10, 0xfe]);
+    const skillWithBundle: CanonicalSkill = {
+      ...SKILL,
+      bundledFiles: [{ path: "assets/logo.png", contents: binaryBytes }],
+    };
+    const contentWithBundle: CanonicalContent = {
+      agents: CONTENT.agents,
+      skills: new Map([["typescript", skillWithBundle]]),
+    };
+
+    const outputs = renderAll(contentWithBundle, SELECTION);
+    await writeOutputs(projectRoot, outputs);
+
+    const onDisk = await readFile(join(projectRoot, ".claude/skills/typescript/assets/logo.png"));
+    expect(onDisk).toEqual(Buffer.from(binaryBytes));
   });
 });
 

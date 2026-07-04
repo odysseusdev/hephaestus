@@ -15,7 +15,7 @@ import {
 } from "../core/provision.js";
 import { decideFile, resolveDrift, type DriftStrategy, type SyncDecision } from "../core/sync.js";
 import { ENGINE_VERSION } from "../core/version.js";
-import { intro, note, outro, select } from "../ui/prompts.js";
+import { assertInteractive, intro, note, outro, select } from "../ui/prompts.js";
 import { decisionLine, syncSummary, tallySyncDecision, type SyncCounts } from "../ui/report.js";
 import { dim, theme } from "../ui/theme.js";
 
@@ -31,13 +31,16 @@ interface FileOutcome {
   path: string;
   decision: SyncDecision;
   /** Bytes to write, or null to leave the disk file untouched. */
-  write: string | null;
+  write: string | Uint8Array | null;
   /** Hash to record in the new lockfile, or undefined to drop the entry. */
   recordHash: string | undefined;
 }
 
 /** Prompt the user to choose a drift resolution strategy for a single file. */
 async function promptStrategy(path: string): Promise<DriftStrategy> {
+  assertInteractive(
+    "resolve drift non-interactively with `hephaestus temper --strategy <overwrite|cancel|merge>`.",
+  );
   return select<DriftStrategy>(
     `drift on ${theme.conflict(path)} — both the project file and the source changed. resolve how?`,
     [
@@ -52,13 +55,13 @@ async function promptStrategy(path: string): Promise<DriftStrategy> {
 /** Decide and (unless dry-run) apply the sync outcome for one output file. */
 async function processFile(
   output: RenderedOutput,
-  file: { path: string; contents: string; hash: string },
+  file: { path: string; contents: string | Uint8Array; hash: string },
   lockfile: Lockfile,
   projectRoot: string,
   options: TemperOptions,
 ): Promise<FileOutcome> {
   const lockHash: string | undefined = previousLockHash(lockfile, output, file.path);
-  const diskContents: string | null = await readFileIfExists(toProjectPath(projectRoot, file.path));
+  const diskContents: Buffer | null = await readFileIfExists(toProjectPath(projectRoot, file.path));
   const diskHash: string | null = diskContents === null ? null : hashContents(diskContents);
 
   const decision: SyncDecision = decideFile({ lockHash, diskHash, newHash: file.hash });

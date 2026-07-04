@@ -3,20 +3,21 @@ import { resolve } from "node:path";
 import { EngineConfigNotFoundError, loadConfig } from "../core/config.js";
 import { expandHome, validateCanonDir, writeGlobalConfig } from "../core/globalconfig.js";
 import { loadCanonical, type CanonicalContent } from "../core/loader.js";
-import { readLockfile, writeLockfile, LOCKFILE_NAME } from "../core/lockfile.js";
+import { LockfileError, readLockfile, writeLockfile, LOCKFILE_NAME } from "../core/lockfile.js";
 import {
   buildLockfile,
   renderAll,
   type ProvisionSelection,
   type RenderedOutput,
 } from "../core/provision.js";
-import type { EngineConfig } from "../core/schema.js";
-import type { HarnessId } from "../core/schema.js";
+import type { CanonicalAgent, EngineConfig, HarnessId } from "../core/schema.js";
 import { ENGINE_VERSION } from "../core/version.js";
 import { ensureHandoffDir, writeOutputs } from "../core/writer.js";
 import { availableHarnesses } from "../harnesses/index.js";
 import {
+  assertInteractive,
   confirm,
+  groupMultiselect,
   intro,
   multiselect,
   note,
@@ -24,7 +25,7 @@ import {
   text,
   type PromptOption,
 } from "../ui/prompts.js";
-import { provisionSummary } from "../ui/report.js";
+import { agentDescriptionsBlock, groupAgentsByCategory, provisionSummary } from "../ui/report.js";
 import { theme } from "../ui/theme.js";
 
 /** Options accepted by the `forge` command. */
@@ -43,6 +44,12 @@ export async function runForge(options: ForgeOptions): Promise<void> {
   const projectRoot: string = resolve(options.dir);
 
   intro("forge", "strike the anvil — shape canonical source into provisioned harness files.");
+
+  // forge is fully interactive (agent select, harness select, handoff dir prompt) with no
+  // non-interactive equivalent yet, so fail fast with a clear message rather than hanging.
+  assertInteractive(
+    "forge has no non-interactive mode yet; if this project is already provisioned, run `hephaestus temper --strategy <overwrite|cancel|merge>` instead.",
+  );
 
   // Resolve config, running the first-time setup flow if no canon dir is configured.
   let config: EngineConfig;
@@ -73,7 +80,22 @@ export async function runForge(options: ForgeOptions): Promise<void> {
 
   const content: CanonicalContent = await loadCanonical(config);
 
-  const existing = await readLockfile(projectRoot);
+  let existing;
+  try {
+    existing = await readLockfile(projectRoot);
+  } catch (error: unknown) {
+    if (!(error instanceof LockfileError) || !options.force) {
+      throw error;
+    }
+    // A corrupt/unparseable lockfile is not a reason to block `--force`, whose
+    // whole point is to re-initialise from scratch — treat it as unprovisioned.
+    note(
+      `${theme.warn("existing hephaestus.lock.yaml could not be read")} (${error.message}).\nproceeding anyway because --force was passed.`,
+      "corrupt lockfile",
+    );
+    existing = null;
+  }
+
   if (existing && !options.force) {
     note(
       `a ${theme.accent(LOCKFILE_NAME)} already exists in this project.\nre-forging will overwrite the current provisioning. run ${theme.accent("hephaestus temper")} instead to propagate changes only.`,
@@ -86,15 +108,20 @@ export async function runForge(options: ForgeOptions): Promise<void> {
     }
   }
 
-  const agentOptions: PromptOption<string>[] = [...content.agents.values()].map((agent) => ({
-    value: agent.id,
-    label: agent.name,
-    hint: `${agent.tier} · ${agent.description}`,
-  }));
-  const agentIds: string[] = await multiselect(
+  const allAgents: CanonicalAgent[] = [...content.agents.values()];
+  const agentGroups: Record<string, PromptOption<string>[]> = {};
+  for (const [category, agents] of groupAgentsByCategory(allAgents)) {
+    agentGroups[category] = agents.map((agent) => ({
+      value: agent.id,
+      label: agent.name,
+      hint: `${agent.tier} · ${agent.summary}`,
+    }));
+  }
+  note(agentDescriptionsBlock(allAgents), "agent descriptions");
+  const agentIds: string[] = await groupMultiselect(
     "which agents do you want to provision?",
-    agentOptions,
-    agentOptions.map((option) => option.value),
+    agentGroups,
+    [],
   );
 
   const harnessOptions: PromptOption<HarnessId>[] = availableHarnesses().map((harness) => ({

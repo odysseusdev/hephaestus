@@ -1,10 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 
 import { z } from "zod";
 
-import { writeFileAtomic } from "./fsops.js";
+import { describeError, writeFileAtomic } from "./fsops.js";
 
 /** Directory where hephaestus stores its global user config. */
 const GLOBAL_CONFIG_DIR: string = join(homedir(), ".config", "hephaestus");
@@ -15,7 +15,10 @@ export const GLOBAL_CONFIG_PATH: string = join(GLOBAL_CONFIG_DIR, "config.json")
 const globalConfigSchema = z
   .object({
     /** Absolute path to the user's canonical content directory. */
-    canonDir: z.string().min(1),
+    canonDir: z
+      .string()
+      .min(1)
+      .refine(isAbsolute, { message: "canonDir must be an absolute path" }),
   })
   .strict();
 
@@ -62,13 +65,22 @@ export function readGlobalConfig(configPath: string = GLOBAL_CONFIG_PATH): Globa
     return null;
   }
 
+  // Read and parse are wrapped separately so an IO failure (e.g. EACCES) is
+  // reported with a friendly "failed to read" message — the same pattern
+  // `readFileIfExists` in fsops.ts uses — rather than being misreported as
+  // invalid JSON.
+  let raw: string;
+  try {
+    raw = readFileSync(configPath, "utf8");
+  } catch (error: unknown) {
+    throw new Error(`Failed to read ${configPath}: ${describeError(error)}`);
+  }
+
   let parsed: unknown;
   try {
-    parsed = JSON.parse(readFileSync(configPath, "utf8"));
+    parsed = JSON.parse(raw);
   } catch (error: unknown) {
-    throw new Error(
-      `${configPath} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    throw new Error(`${configPath} is not valid JSON: ${describeError(error)}`);
   }
 
   const result = globalConfigSchema.safeParse(parsed);

@@ -67,8 +67,16 @@ function withHashes(files: RenderedFile[]): HashedFile[] {
 
 /**
  * Render every selected agent and skill into every selected harness, in memory.
- * Pure — no IO. The result is the basis for both writing (forge) and drift
- * computation (temper).
+ * The result is the basis for both writing (forge) and drift computation (temper).
+ *
+ * `selection.handoffDir` stays project-relative throughout — that's what's
+ * stored in the lockfile, and it's also what gets expanded into the
+ * `{{handoff.dir}}` token in rendered agent bodies, unresolved. Baking an
+ * absolute path into rendered output would break the moment those files are
+ * committed and cloned to a different machine or path. Agents resolve the
+ * relative token against the project root themselves at runtime (see the
+ * handoff directory resolution rule in canonical skill docs); hephaestus's own
+ * filesystem operations (e.g. {@link ensureHandoffDir}) resolve it separately.
  *
  * @throws If a selected agent or skill id is not present in canonical content.
  */

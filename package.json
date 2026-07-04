@@ -1,7 +1,7 @@
 {
-  "name": "hephaestus",
+  "name": "@odysseusdev/hephaestus",
   "version": "0.1.0",
-  "description": "write ai agents once in markdown. forge and sync them for claude, copilot, and codex.",
+  "description": "write ai agents once in markdown, forge them for your coding harness.",
   "keywords": [
     "ai",
     "agents",
@@ -10,7 +10,10 @@
     "copilot",
     "codex",
     "provisioning",
-    "cli"
+    "cli",
+    "markdown",
+    "harness",
+    "sync"
   ],
   "license": "MIT",
   "author": {
@@ -25,6 +28,9 @@
     "url": "https://github.com/odysseusdev/hephaestus/issues"
   },
   "homepage": "https://github.com/odysseusdev/hephaestus#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "bin": {
     "hephaestus": "./dist/cli.js"
@@ -33,7 +39,8 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "types": "./dist/index.d.ts",
   "files": [
@@ -41,7 +48,7 @@
     "README.md"
   ],
   "engines": {
-    "node": ">=18.18"
+    "node": ">=20"
   },
   "scripts": {
     "build": "tsup",
@@ -49,6 +56,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -66,6 +74,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",
+    "@vitest/coverage-v8": "^3.2.6",
     "eslint": "^9.39.1",
     "prettier": "^3.6.2",
     "tsup": "^8.5.0",

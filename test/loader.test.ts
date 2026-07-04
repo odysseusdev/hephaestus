@@ -57,7 +57,7 @@ describe("loadCanonical — validation failures", () => {
   it("rejects an agent referencing an unknown skill", async () => {
     await writeAgent(
       "planner",
-      `---\nid: planner\nname: Planner\ndescription: d\ntier: fast\nskills: [ghost]\n---\n\nbody {{skills}}\n`,
+      `---\nid: planner\nname: Planner\nsummary: s\ndescription: d\ntier: fast\nskills: [ghost]\n---\n\nbody {{skills}}\n`,
     );
     await expect(loadCanonical(config())).rejects.toBeInstanceOf(CanonicalLoadError);
     await expect(loadCanonical(config())).rejects.toThrow(/unknown skill "ghost"/);
@@ -66,7 +66,7 @@ describe("loadCanonical — validation failures", () => {
   it("rejects an unknown template token", async () => {
     await writeAgent(
       "planner",
-      `---\nid: planner\nname: Planner\ndescription: d\ntier: fast\n---\n\nbody {{handoff.inputs}}\n`,
+      `---\nid: planner\nname: Planner\nsummary: s\ndescription: d\ntier: fast\n---\n\nbody {{handoff.inputs}}\n`,
     );
     await expect(loadCanonical(config())).rejects.toThrow(/unknown template token/);
   });
@@ -74,7 +74,7 @@ describe("loadCanonical — validation failures", () => {
   it("rejects a file name that does not match the frontmatter id", async () => {
     await writeAgent(
       "planner",
-      `---\nid: not-planner\nname: Planner\ndescription: d\ntier: fast\n---\n\nbody\n`,
+      `---\nid: not-planner\nname: Planner\nsummary: s\ndescription: d\ntier: fast\n---\n\nbody\n`,
     );
     await expect(loadCanonical(config())).rejects.toThrow(/does not match frontmatter id/);
   });
@@ -87,5 +87,54 @@ describe("loadCanonical — validation failures", () => {
   it("rejects content with no agents", async () => {
     await writeSkill("typescript");
     await expect(loadCanonical(config())).rejects.toThrow(/no agents found/);
+  });
+
+  it("loads an agent with no category frontmatter", async () => {
+    await writeAgent(
+      "planner",
+      `---\nid: planner\nname: Planner\nsummary: s\ndescription: d\ntier: fast\n---\n\nbody\n`,
+    );
+    const content = await loadCanonical(config());
+    const agent = content.agents.get("planner");
+    expect(agent).toBeDefined();
+    expect(agent?.category).toBeUndefined();
+    expect(agent?.summary).toBe("s");
+  });
+
+  it("rejects an agent with no summary frontmatter", async () => {
+    await writeAgent(
+      "planner",
+      `---\nid: planner\nname: Planner\ndescription: d\ntier: fast\n---\n\nbody\n`,
+    );
+    await expect(loadCanonical(config())).rejects.toThrow(/summary/);
+  });
+
+  it("rejects a summary over 80 characters", async () => {
+    const overlongSummary = "s".repeat(81);
+    await writeAgent(
+      "planner",
+      `---\nid: planner\nname: Planner\ndescription: d\ntier: fast\nsummary: "${overlongSummary}"\n---\n\nbody\n`,
+    );
+    await expect(loadCanonical(config())).rejects.toThrow();
+  });
+
+  it("loads a binary bundled skill resource without corrupting its bytes", async () => {
+    await writeAgent(
+      "planner",
+      `---\nid: planner\nname: Planner\nsummary: s\ndescription: d\ntier: fast\nskills: [typescript]\n---\n\nbody {{skills}}\n`,
+    );
+    await writeSkill("typescript");
+
+    // Bytes that are not valid UTF-8 on their own (a lone continuation byte,
+    // 0x00, and 0xff) — a UTF-8 decode/encode round-trip would corrupt these.
+    const binaryBytes = Buffer.from([0x00, 0x80, 0xff, 0x10, 0xfe]);
+    await writeFile(join(dir, "skills", "typescript", "logo.png"), binaryBytes);
+
+    const content = await loadCanonical(config());
+    const skill = content.skills.get("typescript");
+
+    expect(skill?.bundledFiles).toHaveLength(1);
+    expect(skill?.bundledFiles[0]?.path).toBe("logo.png");
+    expect(Buffer.from(skill?.bundledFiles[0]?.contents ?? [])).toEqual(binaryBytes);
   });
 });

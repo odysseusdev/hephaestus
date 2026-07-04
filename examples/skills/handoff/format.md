@@ -1,10 +1,8 @@
 ---
-description: handoff file format for hephaestus agent output summaries.
+description: handoff file format for an agent's output summary. apply when authoring or reviewing a handoff file.
 ---
 
 # handoff format
-
-apply when authoring or reviewing a handoff file written by a hephaestus agent.
 
 ## base template
 
@@ -43,7 +41,7 @@ add role-specific sections after `follow-ups` when they add value. these are con
 | planner | `## task list` | ordered tasks, each naming the files it affects |
 | developer | `## checklist` | items a reviewer should verify |
 | reviewer | `## findings` | categorised findings — see findings format below |
-| agent-author / skill-author | `## created` | file path and full frontmatter written |
+| creator role (agent/skill author, scaffolder, etc.) | `## created` | file path and full frontmatter written |
 
 ## field rules
 
@@ -52,6 +50,7 @@ add role-specific sections after `follow-ups` when they add value. these are con
 - each entry in `files changed` names the file first (`backtick-wrapped path`), then a short description after the dash.
 - `follow-ups` must be present even if empty — write "(none)" rather than omitting it.
 - `date` is ISO 8601: `2026-06-29`. no times, no relative dates.
+- if the agent could not complete its task (missing permissions, a tool it needed was unavailable, required input was ambiguous or missing), set `status` to `blocked` or `partial` and describe the blocker in `follow-ups` — never write a `complete` handoff for work that did not finish.
 
 ## findings format
 

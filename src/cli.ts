@@ -20,13 +20,18 @@ function parseStrategy(value: string): DriftStrategy {
   return value as DriftStrategy;
 }
 
+/** Print a themed, actionable error line for an unknown thrown value. */
+function printError(error: unknown): void {
+  const message: string = error instanceof Error ? error.message : String(error);
+  process.stderr.write(`\n${theme.danger("✖")} ${message}\n`);
+}
+
 /** Run an async command, printing a clean error and exiting non-zero on failure. */
 async function guard(action: () => Promise<void>): Promise<void> {
   try {
     await action();
   } catch (error: unknown) {
-    const message: string = error instanceof Error ? error.message : String(error);
-    process.stderr.write(`\n${theme.danger("✖")} ${message}\n`);
+    printError(error);
     process.exitCode = 1;
   }
 }
@@ -55,6 +60,7 @@ function buildProgram(): Command {
 
   program
     .name("hephaestus")
+    .description("write ai agents once in markdown, forge them for your coding harness.")
     .version(ENGINE_VERSION, "-v, --version");
 
   program
@@ -102,4 +108,19 @@ function buildProgram(): Command {
   return program;
 }
 
-await buildProgram().parseAsync(process.argv);
+/**
+ * Parse `argv` and dispatch to the matched command, catching any error thrown
+ * synchronously during commander's own parse phase (e.g. a custom option parser
+ * rejecting an invalid `--strategy` value) — those otherwise escape `guard()`
+ * entirely and print a raw Node stack trace instead of the themed error line.
+ */
+async function main(): Promise<void> {
+  try {
+    await buildProgram().parseAsync(process.argv);
+  } catch (error: unknown) {
+    printError(error);
+    process.exitCode = 1;
+  }
+}
+
+await main();

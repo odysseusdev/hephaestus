@@ -83,12 +83,19 @@ function ensureTrailingNewline(value: string): string {
 /**
  * Resolve a drifted file given a chosen strategy. The lock is only advanced
  * when the file is brought back into a known-good state (`overwrite`).
+ *
+ * `projectContents`/`sourceContents` accept raw bytes as well as text so a
+ * binary bundled skill resource can still be overwritten or cancelled without
+ * being forced through a lossy UTF-8 decode.
+ *
+ * @throws {Error} If `strategy` is `"merge"` and either side is not text —
+ *   git-style conflict markers are a text-only concept.
  */
 export function resolveDrift(
   strategy: DriftStrategy,
-  projectContents: string,
-  sourceContents: string,
-): { write: string | null; updateLock: boolean } {
+  projectContents: string | Uint8Array,
+  sourceContents: string | Uint8Array,
+): { write: string | Uint8Array | null; updateLock: boolean } {
   switch (strategy) {
     case "overwrite":
       return { write: sourceContents, updateLock: true };
@@ -96,6 +103,11 @@ export function resolveDrift(
       // Leave the disk file; lock stays flagged until user resolves.
       return { write: null, updateLock: false };
     case "merge":
+      if (typeof projectContents !== "string" || typeof sourceContents !== "string") {
+        throw new Error(
+          "cannot merge binary content with conflict markers; choose overwrite or cancel instead.",
+        );
+      }
       // Write conflict markers; lock advances after the user resolves them manually.
       return { write: buildConflictMarkers(projectContents, sourceContents), updateLock: false };
   }

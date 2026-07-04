@@ -8,6 +8,7 @@ import type {
   HarnessId,
   Tier,
 } from "../core/schema.js";
+import { theme } from "../ui/theme.js";
 import { resolveModelFor } from "./models.js";
 import type { Harness, RenderContext, RenderedFile } from "./types.js";
 import { buildMarkdownDocument } from "./util.js";
@@ -20,7 +21,7 @@ const CLAUDE_SKILLS_DIR = ".claude/skills";
 
 /**
  * Abstract tool to concrete Claude tool names. Verified against Claude Code's
- * subagent tool list (June 2026). `search` covers both content and path search.
+ * subagent tool list (July 2026). `search` covers both content and path search.
  */
 const CLAUDE_TOOL_MAP: Record<AbstractTool, string[]> = {
   read: ["Read"],
@@ -28,17 +29,27 @@ const CLAUDE_TOOL_MAP: Record<AbstractTool, string[]> = {
   edit: ["Edit"],
   search: ["Grep", "Glob"],
   execute: ["Bash"],
+  websearch: ["WebSearch"],
+  webfetch: ["WebFetch"],
 };
 
 /**
  * Map abstract tools to Claude's concrete tool names, de-duplicated in order.
- * Unknown tool strings are silently skipped — the schema no longer validates
- * against the closed enum so canon files may carry unrecognised values.
+ * Unknown tool strings are silently skipped (no error, no thrown exception) but
+ * logged via `console.warn` so typos or unmapped abstract tools aren't lost
+ * silently — the schema no longer validates against the closed enum so canon
+ * files may carry unrecognised values.
  */
 function mapTools(tools: string[]): string[] {
   const result: string[] = [];
   for (const tool of tools) {
-    const concrete = CLAUDE_TOOL_MAP[tool as AbstractTool] ?? [];
+    const concrete = CLAUDE_TOOL_MAP[tool as AbstractTool];
+    if (!concrete) {
+      process.stderr.write(
+        `${theme.warn("⚠")} Unrecognised tool "${tool}" for Claude harness — no output tool granted.\n`,
+      );
+      continue;
+    }
     for (const c of concrete) {
       if (!result.includes(c)) result.push(c);
     }

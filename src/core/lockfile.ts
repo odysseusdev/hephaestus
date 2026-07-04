@@ -72,10 +72,11 @@ export class LockfileError extends Error {
  */
 export async function readLockfile(projectRoot: string): Promise<Lockfile | null> {
   const lockPath: string = toProjectPath(projectRoot, LOCKFILE_NAME);
-  const raw: string | null = await readFileIfExists(lockPath);
-  if (raw === null) {
+  const rawBytes: Buffer | null = await readFileIfExists(lockPath);
+  if (rawBytes === null) {
     return null;
   }
+  const raw: string = rawBytes.toString("utf8");
 
   let parsed: unknown;
   try {

@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { basename, dirname, join, relative, sep } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, sep } from "node:path";
 
 import matter from "gray-matter";
 import { glob } from "tinyglobby";
@@ -48,6 +48,21 @@ function formatZodError(label: string, error: ZodError): string[] {
 /** Convert an OS path to forward-slash form for portable storage/comparison. */
 function toPosix(value: string): string {
   return value.split(sep).join("/");
+}
+
+/**
+ * A short, human-friendly form of `contentDir` for diagnostics: relative to the
+ * cwd when possible, falling back to the absolute path as-is.
+ *
+ * `path.relative` falls back to returning its (still-absolute) `to` argument
+ * when the two paths have no common root — notably on Windows when `cwd` and
+ * `contentDir` are on different drive letters. Displaying that fallback as if
+ * it were a relative path (e.g. prefixed into `<path>/agents`) reads as
+ * confusing, so detect it and show the absolute path plainly instead.
+ */
+function displayContentDir(contentDir: string): string {
+  const relativePath: string = relative(process.cwd(), contentDir);
+  return isAbsolute(relativePath) ? contentDir : toPosix(relativePath);
 }
 
 /**
@@ -112,7 +127,10 @@ async function loadSkills(
 
     const bundledFiles: BundledFile[] = [];
     for (const bundledPath of bundledPaths) {
-      const contents: string = await readFile(join(dir, bundledPath), "utf8");
+      // Read as raw bytes (no encoding) so binary bundled resources (images,
+      // archives, etc.) round-trip losslessly instead of being forced through a
+      // lossy UTF-8 decode/encode.
+      const contents: Buffer = await readFile(join(dir, bundledPath));
       bundledFiles.push({ path: bundledPath, contents });
     }
 
@@ -210,9 +228,7 @@ export async function loadCanonical(config: EngineConfig): Promise<CanonicalCont
   const agents: Map<string, CanonicalAgent> = await loadAgents(config, skills, problems);
 
   if (agents.size === 0) {
-    problems.push(
-      `no agents found under ${toPosix(relative(process.cwd(), config.contentDir))}/agents`,
-    );
+    problems.push(`no agents found under ${displayContentDir(config.contentDir)}/agents`);
   }
 
   if (problems.length > 0) {

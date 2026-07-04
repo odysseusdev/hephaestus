@@ -21,9 +21,16 @@ export const harnessIdSchema = z.enum(HARNESS_IDS);
  * concrete tool identifiers. Keeping the set closed lets validation fail fast on
  * typos in canonical agent frontmatter.
  */
-export const ABSTRACT_TOOLS = ["read", "write", "edit", "search", "execute"] as const;
+export const ABSTRACT_TOOLS = [
+  "read",
+  "write",
+  "edit",
+  "search",
+  "execute",
+  "websearch",
+  "webfetch",
+] as const;
 export type AbstractTool = (typeof ABSTRACT_TOOLS)[number];
-export const abstractToolSchema = z.enum(ABSTRACT_TOOLS);
 
 /**
  * Template tokens the agent-body renderer understands. Any other `{{token}}` in a
@@ -57,13 +64,17 @@ export type ModelOverrides = z.infer<typeof modelOverridesSchema>;
  * YAML frontmatter shape for a canonical agent (`canon/agents/<id>.md`).
  *
  * Validation fails fast only for missing required fields (`id`, `name`,
- * `description`, `tier`). Unknown frontmatter fields are silently ignored so
- * independently-maintained canon files can carry custom metadata without
- * breaking the loader.
+ * `summary`, `description`, `tier`). Unknown frontmatter fields are silently
+ * ignored so independently-maintained canon files can carry custom metadata
+ * without breaking the loader.
  */
 export const agentFrontmatterSchema = z.object({
   id: slugSchema,
   name: z.string().min(1),
+  /** Groups this agent under a named section in the forge agent-select prompt. Ungrouped agents fall under "general". */
+  category: slugSchema.optional(),
+  /** Short (<=80 char) display text for CLI select prompts. Distinct purpose from `description`: this is for a human scanning a list, not for harness routing — write it even when `description` would fit in 80 chars. */
+  summary: z.string().min(1).max(80),
   description: z.string().min(1),
   tier: tierSchema,
   modelOverrides: modelOverridesSchema.optional(),
@@ -100,8 +111,8 @@ export interface CanonicalSkillFile {
 export interface BundledFile {
   /** Path relative to the skill folder, in POSIX form. */
   path: string;
-  /** UTF-8 contents, copied through untouched. */
-  contents: string;
+  /** Raw bytes, copied through untouched — binary-safe (never decoded as UTF-8). */
+  contents: Uint8Array;
 }
 
 /** A fully loaded canonical skill, identified by its directory name (slug). */
