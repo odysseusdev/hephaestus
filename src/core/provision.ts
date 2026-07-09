@@ -14,7 +14,7 @@ import {
 import type { HarnessId } from "./schema.js";
 
 /**
- * Re-derive the provisioning selection from a lockfile. Agents that no longer
+ * re-derive the provisioning selection from a lockfile. agents that no longer
  * exist in canonical content are silently dropped.
  */
 export function selectionFromLock(lockfile: Lockfile, content: CanonicalContent): ProvisionSelection {
@@ -27,16 +27,16 @@ export function selectionFromLock(lockfile: Lockfile, content: CanonicalContent)
   };
 }
 
-/** What the user (or a lockfile) selected to provision. */
+/** what the user (or a lockfile) selected to provision. */
 export interface ProvisionSelection {
-  /** In display order. */
+  /** in display order. */
   agentIds: string[];
   harnesses: HarnessId[];
   /** e.g. `docs` */
   outputDir: string;
 }
 
-/** Derive the ordered, deduplicated skill id list for the given agent ids. */
+/** derive the ordered, deduplicated skill id list for the given agent ids. */
 function deriveSkillIds(agentIds: string[], content: CanonicalContent): string[] {
   const skillSet = new Set<string>(
     agentIds.flatMap((id) => content.agents.get(id)?.skills ?? []),
@@ -44,41 +44,41 @@ function deriveSkillIds(agentIds: string[], content: CanonicalContent): string[]
   return [...content.skills.keys()].filter((id) => skillSet.has(id));
 }
 
-/** A rendered file with its content hash. */
+/** a rendered file with its content hash. */
 export interface HashedFile extends RenderedFile {
   hash: string;
 }
 
-/** A rendered output (one agent file, or a skill's set of files) for one harness. */
+/** a rendered output (one agent file, or a skill's set of files) for one harness. */
 export interface RenderedOutput {
   kind: "agent" | "skill";
-  /** Agent or skill id. */
+  /** agent or skill id. */
   ownerId: string;
   harnessId: HarnessId;
-  /** Agent file path, or skill's primary file — its parent dir is the base for relative hash keys. */
+  /** agent file path, or skill's primary file — its parent dir is the base for relative hash keys. */
   primaryPath: string;
   files: HashedFile[];
 }
 
-/** Attach content hashes to a list of rendered files. */
+/** attach content hashes to a list of rendered files. */
 function withHashes(files: RenderedFile[]): HashedFile[] {
   return files.map((file) => ({ ...file, hash: hashContents(file.contents) }));
 }
 
 /**
- * Render every selected agent and skill into every selected harness, in memory.
- * The result is the basis for both writing (forge) and drift computation (temper).
+ * render every selected agent and skill into every selected harness, in memory.
+ * the result is the basis for both writing (forge) and drift computation (temper).
  *
  * `selection.outputDir` stays project-relative throughout — that's what's
  * stored in the lockfile, and it's also what gets expanded into the
- * `{{output}}` token in rendered agent bodies, unresolved. Baking an absolute
+ * `{{output}}` token in rendered agent bodies, unresolved. baking an absolute
  * path into rendered output would break the moment those files are committed
- * and cloned to a different machine or path. Agents resolve the relative
+ * and cloned to a different machine or path. agents resolve the relative
  * token against the project root themselves at runtime (see the output
  * directory resolution rule in canonical skill docs); hephaestus's own
  * filesystem operations (e.g. {@link ensureOutputDir}) resolve it separately.
  *
- * @throws If a selected agent or skill id is not present in canonical content.
+ * @throws if a selected agent or skill id is not present in canonical content.
  */
 export function renderAll(
   content: CanonicalContent,
@@ -134,7 +134,7 @@ export function renderAll(
 }
 
 /**
- * Look up the lock hash previously recorded for a specific output file,
+ * look up the lock hash previously recorded for a specific output file,
  * or undefined if the file is not tracked in the lockfile.
  */
 export function previousLockHash(
@@ -158,12 +158,12 @@ export function previousLockHash(
 }
 
 /**
- * Build a {@link LockOutput} for one rendered output. When `fileHashes` is
+ * build a {@link LockOutput} for one rendered output. when `fileHashes` is
  * provided (the temper path), hashes come from the recorded sync outcomes so
- * keep/cancel decisions preserve the old hash. When omitted (the forge path),
+ * keep/cancel decisions preserve the old hash. when omitted (the forge path),
  * hashes come directly from the rendered files.
  *
- * Returns null when `fileHashes` is provided but empty (all files in the
+ * returns null when `fileHashes` is provided but empty (all files in the
  * output were untracked-drift + cancel/merge, so no lock entry is warranted).
  */
 function buildLockOutputFor(
@@ -204,16 +204,16 @@ function buildLockOutputFor(
   };
 }
 
-/** Build the {@link LockOutput} for a single rendered output. */
+/** build the {@link LockOutput} for a single rendered output. */
 export function toLockOutput(output: RenderedOutput): LockOutput {
   return buildLockOutputFor(output) as LockOutput;
 }
 
 /**
- * Build a lockfile from rendered outputs.
+ * build a lockfile from rendered outputs.
  *
- * When `recordedHashes` is omitted (forge path), hashes come directly from
- * the rendered output. When provided (temper path), hashes come from the sync
+ * when `recordedHashes` is omitted (forge path), hashes come directly from
+ * the rendered output. when provided (temper path), hashes come from the sync
  * outcomes so keep/cancel decisions preserve old hashes.
  */
 export function buildLockfile(

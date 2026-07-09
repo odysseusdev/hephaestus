@@ -28,16 +28,16 @@ import {
 import { agentDescriptionsBlock, groupAgentsByCategory, provisionSummary } from "../ui/report.js";
 import { theme } from "../ui/theme.js";
 
-/** Options accepted by the `forge` command. */
+/** options accepted by the `forge` command. */
 export interface ForgeOptions {
   dir: string;
-  /** Re-initialise even if a lockfile already exists. */
+  /** re-initialise even if a lockfile already exists. */
   force: boolean;
 }
 
 /**
- * Run the interactive `forge` command: select agents/harnesses/output dir,
- * preview, then write provisioned files and lockfile. Handles the first-run
+ * run the interactive `forge` command: select agents/harnesses/output dir,
+ * preview, then write provisioned files and lockfile. handles the first-run
  * case by prompting for a canon directory when none is configured.
  */
 export async function runForge(options: ForgeOptions): Promise<void> {
@@ -51,7 +51,7 @@ export async function runForge(options: ForgeOptions): Promise<void> {
     "forge has no non-interactive mode yet; if this project is already provisioned, run `hephaestus temper --strategy <overwrite|cancel|merge>` instead.",
   );
 
-  // Resolve config, running the first-time setup flow if no canon dir is configured.
+  // resolve config, running the first-time setup flow if no canon dir is configured.
   let config: EngineConfig;
   try {
     config = loadConfig();
@@ -92,7 +92,7 @@ export async function runForge(options: ForgeOptions): Promise<void> {
     if (!(error instanceof LockfileError) || !options.force) {
       throw error;
     }
-    // A corrupt/unparseable lockfile is not a reason to block `--force`, whose
+    // a corrupt/unparseable lockfile is not a reason to block `--force`, whose
     // whole point is to re-initialise from scratch — treat it as unprovisioned.
     note(
       `${theme.warn("existing hephaestus.lock.yaml could not be read")} (${error.message}).\nproceeding anyway because --force was passed.`,

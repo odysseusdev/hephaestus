@@ -3,11 +3,11 @@ import { mkdir, readFile, rename, rm, rmdir, writeFile } from "node:fs/promises"
 import { dirname, isAbsolute, join, resolve, sep } from "node:path";
 
 /**
- * Convert a project-relative POSIX path to an absolute OS-native path, rooted
+ * convert a project-relative POSIX path to an absolute OS-native path, rooted
  * under `projectRoot`.
  *
- * @throws {Error} If the resolved path escapes `projectRoot` — via `../`
- *   segments or by `relativePosixPath` itself being absolute. This guards every
+ * @throws {Error} if the resolved path escapes `projectRoot` — via `../`
+ *   segments or by `relativePosixPath` itself being absolute. this guards every
  *   caller that persists or prompts for a path (e.g. the `outputDir` prompt
  *   value in `forge`) against writing or deleting outside the project.
  */
@@ -27,16 +27,16 @@ export function toProjectPath(projectRoot: string, relativePosixPath: string): s
   return resolvedPath;
 }
 
-/** Ensure a directory exists, creating parent directories as needed. */
+/** ensure a directory exists, creating parent directories as needed. */
 export async function ensureDir(dir: string): Promise<void> {
   await mkdir(dir, { recursive: true });
 }
 
 /**
- * Read a file's raw bytes, returning null if it does not exist. Other IO errors
+ * read a file's raw bytes, returning null if it does not exist. other IO errors
  * are rethrown with context.
  *
- * Deliberately binary-safe (no encoding is forced): callers that know a file is
+ * deliberately binary-safe (no encoding is forced): callers that know a file is
  * text (e.g. the lockfile, JSON config) decode it themselves with
  * `.toString("utf8")`, while callers handling bundled skill resources (which may
  * be binary) can compare/write the bytes untouched.
@@ -53,10 +53,10 @@ export async function readFileIfExists(filePath: string): Promise<Buffer | null>
 }
 
 /**
- * Atomically write a file: write to a sibling temp file then rename into place,
- * so a crash mid-write cannot leave a half-written target. Creates parent dirs.
+ * atomically write a file: write to a sibling temp file then rename into place,
+ * so a crash mid-write cannot leave a half-written target. creates parent dirs.
  *
- * Accepts either UTF-8 text or raw bytes so binary bundled skill resources
+ * accepts either UTF-8 text or raw bytes so binary bundled skill resources
  * round-trip losslessly through the same write path as rendered text files.
  */
 export async function writeFileAtomic(
@@ -79,13 +79,13 @@ export async function writeFileAtomic(
     }
     await rename(tempPath, filePath);
   } catch (error: unknown) {
-    // Best-effort cleanup of the temp file; ignore if it is already gone.
+    // best-effort cleanup of the temp file; ignore if it is already gone.
     await rm(tempPath, { force: true }).catch(() => undefined);
     throw new Error(`Failed to write ${filePath}: ${describeError(error)}`);
   }
 }
 
-/** Remove a single file. Returns true if deleted, false if it did not exist. Other IO errors are rethrown. */
+/** remove a single file. returns true if deleted, false if it did not exist. other IO errors are rethrown. */
 export async function removeFile(filePath: string): Promise<boolean> {
   try {
     await rm(filePath);
@@ -96,7 +96,7 @@ export async function removeFile(filePath: string): Promise<boolean> {
   }
 }
 
-/** Remove a directory only if empty. Silently ignores ENOENT and ENOTEMPTY. */
+/** remove a directory only if empty. silently ignores ENOENT and ENOTEMPTY. */
 export async function tryRemoveEmptyDir(dirPath: string): Promise<void> {
   try {
     await rmdir(dirPath);
@@ -105,12 +105,12 @@ export async function tryRemoveEmptyDir(dirPath: string): Promise<void> {
   }
 }
 
-/** Remove a directory and all of its contents recursively. */
+/** remove a directory and all of its contents recursively. */
 export async function removeDir(dirPath: string): Promise<void> {
   await rm(dirPath, { recursive: true, force: true });
 }
 
-/** Whether an unknown error is a Node "file not found" error. */
+/** whether an unknown error is a Node "file not found" error. */
 function isNotFound(error: unknown): boolean {
   return (
     typeof error === "object" &&
@@ -120,7 +120,7 @@ function isNotFound(error: unknown): boolean {
   );
 }
 
-/** Extract a human-readable message from an unknown thrown value. */
+/** extract a human-readable message from an unknown thrown value. */
 export function describeError(error: unknown): string {
   if (error instanceof Error) {
     return error.message;

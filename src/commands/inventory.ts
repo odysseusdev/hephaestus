@@ -17,13 +17,13 @@ import { intro, note, outro } from "../ui/prompts.js";
 import { decisionLine, syncSummary, tallySyncDecision, type SyncCounts } from "../ui/report.js";
 import { bold, theme } from "../ui/theme.js";
 
-/** Options accepted by the `inventory` command. */
+/** options accepted by the `inventory` command. */
 export interface InventoryOptions {
   dir: string;
 }
 
 /**
- * Run the read-only `inventory` command: show provisioned agents (tier + skills)
+ * run the read-only `inventory` command: show provisioned agents (tier + skills)
  * and any pending drift.
  */
 export async function runInventory(options: InventoryOptions): Promise<void> {

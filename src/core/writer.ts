@@ -1,7 +1,7 @@
 import { ensureDir, toProjectPath, writeFileAtomic } from "./fsops.js";
 import type { RenderedOutput } from "./provision.js";
 
-/** Write rendered outputs to disk under a project root, atomically and creating parent dirs. */
+/** write rendered outputs to disk under a project root, atomically and creating parent dirs. */
 export async function writeOutputs(
   projectRoot: string,
   outputs: RenderedOutput[],
@@ -17,7 +17,7 @@ export async function writeOutputs(
 }
 
 /**
- * Create the (empty) output directory. Agents create their own files at
+ * create the (empty) output directory. agents create their own files at
  * runtime; the CLI only ensures the directory exists.
  */
 export async function ensureOutputDir(projectRoot: string, outputDir: string): Promise<void> {

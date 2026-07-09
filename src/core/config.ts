@@ -4,14 +4,14 @@ import { resolve } from "node:path";
 import { readGlobalConfig } from "./globalconfig.js";
 import { engineConfigSchema, type EngineConfig } from "./schema.js";
 
-/** Environment variable that overrides the canonical content directory. */
+/** environment variable that overrides the canonical content directory. */
 export const CONTENT_DIR_ENV = "HEPHAESTUS_CANON_DIR";
 
-/** Default output directory when the user does not override it at `forge` time. */
+/** default output directory when the user does not override it at `forge` time. */
 export const DEFAULT_OUTPUT_DIR = ".hephaestus";
 
 /**
- * Thrown when no canonical content directory can be located. Commands that can
+ * thrown when no canonical content directory can be located. commands that can
  * recover from this (e.g. `forge`) catch it and run the first-run setup flow.
  */
 export class EngineConfigNotFoundError extends Error {
@@ -25,12 +25,12 @@ export class EngineConfigNotFoundError extends Error {
 }
 
 /**
- * Resolve the engine configuration. Content dir resolution order:
+ * resolve the engine configuration. content dir resolution order:
  *   1. `HEPHAESTUS_CANON_DIR` env var, if set;
- *   2. Global user config at `~/.config/hephaestus/config.json`.
+ *   2. global user config at `~/.config/hephaestus/config.json`.
  *
- * @throws {EngineConfigNotFoundError} If no canonical content directory can be found.
- * @throws {Error} If the resolved directory does not exist on disk.
+ * @throws {EngineConfigNotFoundError} if no canonical content directory can be found.
+ * @throws {Error} if the resolved directory does not exist on disk.
  */
 export function loadConfig(): EngineConfig {
   const envOverride: string | undefined = process.env[CONTENT_DIR_ENV];
