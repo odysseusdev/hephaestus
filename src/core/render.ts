@@ -41,14 +41,16 @@ export function formatHandoffList(files: string[], handoffDir: string): string {
 export type TokenValues = Record<KnownToken, string>;
 
 /**
- * Expand all known tokens in an agent body. Assumes the body has already passed
- * {@link findUnknownTokens} at load time — an unexpected token here is a
- * programming error and throws.
+ * Expand all known tokens in an agent body. Unknown tokens (anything not in
+ * `values`, i.e. not in {@link KNOWN_TOKENS}) are left untouched in the output
+ * by design — agent bodies may legitimately contain `{{token}}` placeholders
+ * that belong to a different templating system or are literal doc examples,
+ * and those should pass through unmodified rather than fail rendering.
  */
 export function expandTokens(body: string, values: TokenValues): string {
-  return body.replace(TOKEN_REGEX, (_whole: string, name: string): string => {
+  return body.replace(TOKEN_REGEX, (whole: string, name: string): string => {
     if (!(name in values)) {
-      throw new Error(`Unknown template token "{{${name}}}" encountered during rendering.`);
+      return whole;
     }
     return values[name as KnownToken];
   });

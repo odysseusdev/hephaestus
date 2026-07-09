@@ -111,7 +111,7 @@ export class ClaudeHarness implements Harness {
     const tools: string[] = mapTools(agent.tools);
 
     const tokenValues: TokenValues = {
-      "handoff.dir": ctx.handoffDir,
+      output: ctx.outputDir,
       skills: this.renderSkillLinks(agent.id, agent.skills, skills),
     };
 

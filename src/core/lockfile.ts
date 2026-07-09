@@ -1,8 +1,10 @@
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { z } from "zod";
 
-import { readFileIfExists, toProjectPath, writeFileAtomic } from "./fsops.js";
+import { describeError, readFileIfExists, toProjectPath, writeFileAtomic } from "./fsops.js";
+import { applyMigrations } from "./lockfile-migrations.js";
 import { harnessIdSchema, tierSchema } from "./schema.js";
+import { ENGINE_VERSION } from "./version.js";
 
 /** File name of the per-project lockfile written into the target project root. */
 export const LOCKFILE_NAME = "hephaestus.lock.yaml";
@@ -49,7 +51,7 @@ export const lockfileSchema = z
   .object({
     version: z.literal(LOCKFILE_VERSION),
     engineVersion: z.string(),
-    handoffDir: z.string().min(1),
+    outputDir: z.string().min(1),
     harnesses: z.array(harnessIdSchema),
     agents: z.record(z.string(), agentLockSchema),
     skills: z.record(z.string(), skillLockSchema),
@@ -66,11 +68,90 @@ export class LockfileError extends Error {
 }
 
 /**
+ * Error raised when the on-disk lockfile's `version` is newer than this CLI's
+ * `LOCKFILE_VERSION` can read. Deliberately a *sibling* of {@link LockfileError},
+ * not a subclass — `forge --force`'s corrupt-lockfile handling checks
+ * `error instanceof LockfileError` and must never swallow this case. Silently
+ * wiping a newer lockfile a future CLI release could still read would be
+ * unrecoverable data loss; upgrading the CLI (or manually deleting the
+ * lockfile) is the only sanctioned way past this error.
+ */
+export class LockfileTooNewError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "LockfileTooNewError";
+  }
+}
+
+/** Notified when `readLockfile` migrates an older on-disk lockfile forward. */
+export type LockfileMigrationNotice = (fromVersion: number, toVersion: number) => void;
+
+/** Loosely-parsed version fields read from a lockfile before strict validation runs. */
+interface VersionProbe {
+  /** The on-disk `version`, or undefined if absent/not a number. */
+  version: number | undefined;
+  /** The on-disk `engineVersion`, degrading gracefully when absent. */
+  engineVersion: string;
+}
+
+/**
+ * Read only `version` and `engineVersion` out of a freshly-parsed YAML value,
+ * tolerating unknown/extra/missing fields. Used ahead of strict schema
+ * validation because an off-version file cannot satisfy `lockfileSchema`
+ * (whose `version` is pinned via `z.literal`), yet the version itself needs to
+ * be known before deciding whether strict validation should even run.
+ */
+function probeVersion(parsed: unknown): VersionProbe {
+  const record: Record<string, unknown> =
+    typeof parsed === "object" && parsed !== null ? (parsed as Record<string, unknown>) : {};
+  const version: number | undefined = typeof record.version === "number" ? record.version : undefined;
+  const engineVersion: string =
+    typeof record.engineVersion === "string" ? record.engineVersion : "an unknown version";
+  return { version, engineVersion };
+}
+
+/** Run strict schema validation, throwing a {@link LockfileError} with issue detail on failure. */
+function validateLockfileShape(data: unknown): Lockfile {
+  const result = lockfileSchema.safeParse(data);
+  if (!result.success) {
+    const detail: string = result.error.issues
+      .map((issue) => `${issue.path.join(".")} — ${issue.message}`)
+      .join("; ");
+    throw new LockfileError(`${LOCKFILE_NAME} failed validation: ${detail}`);
+  }
+  return result.data;
+}
+
+/**
  * Read and validate the lockfile from a project directory.
  *
- * @throws {LockfileError} If the file exists but is invalid YAML or shape.
+ * Performs a three-way comparison of the on-disk `version` against the
+ * current {@link LOCKFILE_VERSION} before running strict schema validation:
+ *
+ * - **Equal** — validated as-is, unchanged behaviour.
+ * - **Newer than this CLI** — hard-fails with {@link LockfileTooNewError}
+ *   (never best-effort-read; upgrade the CLI or delete the lockfile).
+ * - **Older than this CLI** — auto-migrated forward via
+ *   `LOCKFILE_MIGRATIONS`/`applyMigrations` (see `lockfile-migrations.ts`),
+ *   then **written back to disk** before being returned. This write-back is a
+ *   deliberate side effect on the migration path, including for read-only
+ *   callers (`inventory`, `temper --dry-run`) — it is only acceptable because
+ *   `onMigrate` fires first, making it a notified change rather than a silent
+ *   one. Callers must wire `onMigrate` to user-facing UI.
+ *
+ * @param onMigrate - Called with `(fromVersion, toVersion)` before the
+ *   migrated lockfile is written back to disk, whenever migration occurs.
+ *   Required by policy for the write-back to be non-silent; core stays
+ *   UI-agnostic by taking a plain callback instead of importing `ui/`.
+ * @throws {LockfileError} If the file exists but is invalid YAML, invalid
+ *   shape, or cannot be migrated (no registered migration path).
+ * @throws {LockfileTooNewError} If the on-disk `version` is newer than this
+ *   CLI's `LOCKFILE_VERSION`.
  */
-export async function readLockfile(projectRoot: string): Promise<Lockfile | null> {
+export async function readLockfile(
+  projectRoot: string,
+  onMigrate?: LockfileMigrationNotice,
+): Promise<Lockfile | null> {
   const lockPath: string = toProjectPath(projectRoot, LOCKFILE_NAME);
   const rawBytes: Buffer | null = await readFileIfExists(lockPath);
   if (rawBytes === null) {
@@ -87,15 +168,40 @@ export async function readLockfile(projectRoot: string): Promise<Lockfile | null
     );
   }
 
-  const result = lockfileSchema.safeParse(parsed);
-  if (!result.success) {
-    const detail: string = result.error.issues
-      .map((issue) => `${issue.path.join(".")} — ${issue.message}`)
-      .join("; ");
-    throw new LockfileError(`${LOCKFILE_NAME} failed validation: ${detail}`);
+  const { version: onDiskVersion, engineVersion } = probeVersion(parsed);
+
+  // Version undeterminable (missing/non-number) — fall through to strict
+  // validation directly, which will raise a clear LockfileError on its own.
+  if (onDiskVersion === undefined) {
+    return validateLockfileShape(parsed);
   }
 
-  return result.data;
+  if (onDiskVersion > LOCKFILE_VERSION) {
+    throw new LockfileTooNewError(
+      `${LOCKFILE_NAME} was written by hephaestus ${engineVersion}, but you're running ${ENGINE_VERSION}. ` +
+        `this lockfile uses a newer format this version can't read. upgrade hephaestus to ${engineVersion} or newer to continue.`,
+    );
+  }
+
+  if (onDiskVersion < LOCKFILE_VERSION) {
+    onMigrate?.(onDiskVersion, LOCKFILE_VERSION);
+
+    let migrated: unknown;
+    try {
+      migrated = applyMigrations(parsed, onDiskVersion, LOCKFILE_VERSION);
+    } catch (error: unknown) {
+      throw new LockfileError(
+        `${LOCKFILE_NAME} could not be migrated from version ${onDiskVersion} to ${LOCKFILE_VERSION}: ${describeError(error)}`,
+      );
+    }
+
+    const validated: Lockfile = validateLockfileShape(migrated);
+    await writeLockfile(projectRoot, validated);
+    return validated;
+  }
+
+  // onDiskVersion === LOCKFILE_VERSION
+  return validateLockfileShape(parsed);
 }
 
 /** Write the lockfile into a project directory (pretty-printed, trailing newline). */

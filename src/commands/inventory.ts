@@ -4,7 +4,7 @@ import { loadConfig } from "../core/config.js";
 import { readFileIfExists, toProjectPath } from "../core/fsops.js";
 import { hashContents } from "../core/hash.js";
 import { loadCanonical, type CanonicalContent } from "../core/loader.js";
-import { readLockfile, type Lockfile } from "../core/lockfile.js";
+import { LOCKFILE_NAME, readLockfile, type Lockfile } from "../core/lockfile.js";
 import {
   previousLockHash,
   renderAll,
@@ -31,7 +31,12 @@ export async function runInventory(options: InventoryOptions): Promise<void> {
 
   intro("inventory", "survey the workshop — catalogue what has been provisioned.");
 
-  const lockfile: Lockfile | null = await readLockfile(projectRoot);
+  const lockfile: Lockfile | null = await readLockfile(projectRoot, (fromVersion, toVersion) => {
+    note(
+      `${theme.accent(LOCKFILE_NAME)} is v${fromVersion}, migrating to v${toVersion}...`,
+      "migrating lockfile",
+    );
+  });
   if (!lockfile) {
     outro("not yet provisioned in this directory. run hephaestus forge.");
     return;
@@ -47,7 +52,7 @@ export async function runInventory(options: InventoryOptions): Promise<void> {
   note(agentLines.join("\n"), "agents");
 
   note(
-    `harnesses: ${lockfile.harnesses.map((id) => theme.accent(id)).join(", ")}\nhandoff dir: ${theme.accent(`${lockfile.handoffDir}/`)}`,
+    `harnesses: ${lockfile.harnesses.map((id) => theme.accent(id)).join(", ")}\noutput dir: ${theme.accent(`${lockfile.outputDir}/`)}`,
     "provisioned",
   );
 

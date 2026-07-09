@@ -12,7 +12,7 @@ import {
 } from "../core/provision.js";
 import type { CanonicalAgent, EngineConfig, HarnessId } from "../core/schema.js";
 import { ENGINE_VERSION } from "../core/version.js";
-import { ensureHandoffDir, writeOutputs } from "../core/writer.js";
+import { ensureOutputDir, writeOutputs } from "../core/writer.js";
 import { availableHarnesses } from "../harnesses/index.js";
 import {
   assertInteractive,
@@ -36,7 +36,7 @@ export interface ForgeOptions {
 }
 
 /**
- * Run the interactive `forge` command: select agents/harnesses/handoff dir,
+ * Run the interactive `forge` command: select agents/harnesses/output dir,
  * preview, then write provisioned files and lockfile. Handles the first-run
  * case by prompting for a canon directory when none is configured.
  */
@@ -45,7 +45,7 @@ export async function runForge(options: ForgeOptions): Promise<void> {
 
   intro("forge", "strike the anvil — shape canonical source into provisioned harness files.");
 
-  // forge is fully interactive (agent select, harness select, handoff dir prompt) with no
+  // forge is fully interactive (agent select, harness select, output dir prompt) with no
   // non-interactive equivalent yet, so fail fast with a clear message rather than hanging.
   assertInteractive(
     "forge has no non-interactive mode yet; if this project is already provisioned, run `hephaestus temper --strategy <overwrite|cancel|merge>` instead.",
@@ -82,7 +82,12 @@ export async function runForge(options: ForgeOptions): Promise<void> {
 
   let existing;
   try {
-    existing = await readLockfile(projectRoot);
+    existing = await readLockfile(projectRoot, (fromVersion, toVersion) => {
+      note(
+        `${theme.accent(LOCKFILE_NAME)} is v${fromVersion}, migrating to v${toVersion}...`,
+        "migrating lockfile",
+      );
+    });
   } catch (error: unknown) {
     if (!(error instanceof LockfileError) || !options.force) {
       throw error;
@@ -134,15 +139,15 @@ export async function runForge(options: ForgeOptions): Promise<void> {
     harnessOptions.map((option) => option.value),
   );
 
-  const handoffDir: string = await text(
-    "handoff directory (agents read/write handoff files here)?",
-    config.defaultHandoffDir,
+  const outputDir: string = await text(
+    "output directory (agents read/write output files here)?",
+    config.defaultOutputDir,
   );
 
   const selection: ProvisionSelection = {
     agentIds,
     harnesses,
-    handoffDir,
+    outputDir,
   };
 
   const outputs: RenderedOutput[] = renderAll(content, selection);
@@ -151,7 +156,7 @@ export async function runForge(options: ForgeOptions): Promise<void> {
   note(provisionSummary(outputs), "files to write");
 
   const proceed: boolean = await confirm(
-    `write ${theme.accent(String(fileCount))} file(s) and create ${theme.accent(`${handoffDir}/`)}?`,
+    `write ${theme.accent(String(fileCount))} file(s) and create ${theme.accent(`${outputDir}/`)}?`,
   );
   if (!proceed) {
     outro("cancelled. nothing was written.");
@@ -159,13 +164,13 @@ export async function runForge(options: ForgeOptions): Promise<void> {
   }
 
   await writeOutputs(projectRoot, outputs);
-  await ensureHandoffDir(projectRoot, handoffDir);
+  await ensureOutputDir(projectRoot, outputDir);
 
   const lockfile = buildLockfile(content, outputs, selection, ENGINE_VERSION);
   await writeLockfile(projectRoot, lockfile);
 
   note(
-    `${theme.success(`${fileCount} file(s) written`)} across ${harnesses.map((id) => theme.accent(id)).join(", ")}.\nhandoff directory ${theme.accent(`${handoffDir}/`)} created (empty — agents create handoff files at runtime).\nlockfile ${theme.accent(LOCKFILE_NAME)} written.`,
+    `${theme.success(`${fileCount} file(s) written`)} across ${harnesses.map((id) => theme.accent(id)).join(", ")}.\noutput directory ${theme.accent(`${outputDir}/`)} created (agents can define subdirectories at runtime).\nlockfile ${theme.accent(LOCKFILE_NAME)} written.`,
     "done",
   );
   outro("provisioned. run hephaestus temper after editing canonical sources.");

@@ -18,7 +18,9 @@ describe("extractTokenNames", () => {
 
 describe("findUnknownTokens", () => {
   it("accepts the known token set", () => {
-    expect(findUnknownTokens("{{handoff.dir}} {{skills}}")).toEqual([]);
+    expect(
+      findUnknownTokens("{{output}} {{skills}}"),
+    ).toEqual([]);
   });
 
   it("reports unknown tokens", () => {
@@ -46,12 +48,12 @@ describe("formatHandoffList", () => {
 
 describe("expandTokens", () => {
   const values: TokenValues = {
-    "handoff.dir": "docs",
+    output: "docs",
     skills: "- [typescript](../skills/typescript/SKILL.md)",
   };
 
   it("expands all known tokens and leaves no raw braces", () => {
-    const body = "write to {{handoff.dir}}/YYYY-MM-DD-build-feature.md.\n{{skills}}";
+    const body = "write to {{output}}/YYYY-MM-DD-build-feature.md.\n{{skills}}";
     const out = expandTokens(body, values);
     expect(out).toBe(
       "write to docs/YYYY-MM-DD-build-feature.md.\n- [typescript](../skills/typescript/SKILL.md)",
@@ -59,7 +61,8 @@ describe("expandTokens", () => {
     expect(out).not.toMatch(/\{\{/);
   });
 
-  it("throws on an unexpected token (defensive; should be caught at load time)", () => {
-    expect(() => expandTokens("{{unexpected}}", values)).toThrow(/unexpected/);
+  it("leaves an unknown token unchanged rather than throwing", () => {
+    const body = "known: {{output}}. unknown: {{bogus}}.";
+    expect(expandTokens(body, values)).toBe("known: docs. unknown: {{bogus}}.");
   });
 });

@@ -8,7 +8,7 @@ import { readLockfile, writeLockfile, type Lockfile } from "../src/core/lockfile
 import { buildLockfile, renderAll, type ProvisionSelection } from "../src/core/provision.js";
 import type { CanonicalAgent, CanonicalSkill } from "../src/core/schema.js";
 import { ENGINE_VERSION } from "../src/core/version.js";
-import { ensureHandoffDir, writeOutputs } from "../src/core/writer.js";
+import { ensureOutputDir, writeOutputs } from "../src/core/writer.js";
 import { runTemper } from "../src/commands/temper.js";
 import type { CanonicalContent } from "../src/core/loader.js";
 
@@ -34,7 +34,7 @@ const AGENT: CanonicalAgent = {
   tier: "fast",
   tools: ["read"],
   skills: ["typescript"],
-  body: "## role\n\nyou plan work. write output to {{handoff.dir}}/plan.md.\n\n## your skills\n\n{{skills}}\n",
+  body: "## role\n\nyou plan work. write output to {{output}}/plan.md.\n\n## your skills\n\n{{skills}}\n",
   sourcePath: "/fake/agents/planner.md",
 };
 
@@ -46,7 +46,7 @@ const CONTENT: CanonicalContent = {
 const SELECTION: ProvisionSelection = {
   agentIds: ["planner"],
   harnesses: ["claude"],
-  handoffDir: "docs",
+  outputDir: "docs",
 };
 
 const SKILL_FILE = ".claude/skills/typescript/conventions.md";
@@ -57,7 +57,7 @@ let projectRoot: string;
 async function provision(): Promise<void> {
   const outputs = renderAll(CONTENT, SELECTION);
   await writeOutputs(projectRoot, outputs);
-  await ensureHandoffDir(projectRoot, SELECTION.handoffDir);
+  await ensureOutputDir(projectRoot, SELECTION.outputDir);
   await writeLockfile(projectRoot, buildLockfile(CONTENT, outputs, SELECTION, ENGINE_VERSION));
 }
 
@@ -90,7 +90,7 @@ describe("provision (init write path)", () => {
     expect(skill).toContain("# typescript");
   });
 
-  it("creates an empty handoff dir and no handoff files at provision time", async () => {
+  it("creates an empty output dir and no output files at provision time", async () => {
     await provision();
 
     const docsStat = await stat(join(projectRoot, "docs"));
@@ -98,10 +98,10 @@ describe("provision (init write path)", () => {
     expect(await readdir(join(projectRoot, "docs"))).toEqual([]);
   });
 
-  it("writes a lockfile that round-trips and records the handoff dir", async () => {
+  it("writes a lockfile that round-trips and records the output dir", async () => {
     await provision();
     const lockfile = await readLockfile(projectRoot);
-    expect(lockfile?.handoffDir).toBe("docs");
+    expect(lockfile?.outputDir).toBe("docs");
     expect(lockfile?.harnesses).toEqual(["claude"]);
     expect(Object.keys(lockfile?.agents ?? {})).toContain("planner");
   });

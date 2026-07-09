@@ -21,7 +21,7 @@ function parseMatter(file: RenderedFile): GrayMatterFile<string> {
 
 const ctx = (tier: RenderContext["tier"]): RenderContext => ({
   harnessId: "claude",
-  handoffDir: "docs",
+  outputDir: "docs",
   tier,
 });
 
@@ -47,7 +47,7 @@ const AGENT: CanonicalAgent = {
   tier: "fast",
   tools: ["read"],
   skills: ["typescript"],
-  body: "## role\n\nyou plan work. write output to {{handoff.dir}}/plan.md.\n\n## your skills\n\n{{skills}}\n",
+  body: "## role\n\nyou plan work. write output to {{output}}/plan.md.\n\n## your skills\n\n{{skills}}\n",
   sourcePath: "/fake/agents/planner.md",
 };
 
@@ -77,7 +77,7 @@ describe("ClaudeHarness — agent transpile", () => {
     expect(parseMatter(rendered).data.model).toBe("claude-custom-9");
   });
 
-  it("expands handoff tokens and leaves no raw tokens", () => {
+  it("expands output tokens and leaves no raw tokens", () => {
     const body = parseMatter(harness.renderAgent(AGENT, ctx("fast"), skills)).content;
     expect(body).toContain("docs/plan.md");
     expect(body).not.toMatch(/\{\{/);

@@ -5,7 +5,6 @@ import matter from "gray-matter";
 import { glob } from "tinyglobby";
 import type { ZodError } from "zod";
 
-import { findUnknownTokens } from "./render.js";
 import {
   agentFrontmatterSchema,
   type BundledFile,
@@ -147,7 +146,10 @@ async function loadSkills(
 
 /**
  * Load and validate canonical agents under `<contentDir>/agents`,
- * cross-checking that every referenced skill and template token is known.
+ * cross-checking that every referenced skill is known. Unknown `{{token}}`
+ * placeholders in the body are permitted — they are left untouched at render
+ * time (see {@link "./render"}) so agent bodies can legitimately contain
+ * placeholders that are not hephaestus's own known tokens.
  */
 async function loadAgents(
   config: EngineConfig,
@@ -185,13 +187,6 @@ async function loadAgents(
     if (parsed.content.trim().length === 0) {
       problems.push(`${label}: agent body is empty`);
       continue;
-    }
-
-    const unknownTokens: string[] = findUnknownTokens(parsed.content);
-    if (unknownTokens.length > 0) {
-      problems.push(
-        `${label}: unknown template token(s): ${unknownTokens.map((token) => `{{${token}}}`).join(", ")}`,
-      );
     }
 
     for (const skillId of frontmatter.skills) {

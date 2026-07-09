@@ -8,7 +8,7 @@ import { dirname, isAbsolute, join, resolve, sep } from "node:path";
  *
  * @throws {Error} If the resolved path escapes `projectRoot` — via `../`
  *   segments or by `relativePosixPath` itself being absolute. This guards every
- *   caller that persists or prompts for a path (e.g. the `handoffDir` prompt
+ *   caller that persists or prompts for a path (e.g. the `outputDir` prompt
  *   value in `forge`) against writing or deleting outside the project.
  */
 export function toProjectPath(projectRoot: string, relativePosixPath: string): string {

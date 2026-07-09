@@ -9,7 +9,7 @@ import { writeLockfile } from "../src/core/lockfile.js";
 import { buildLockfile, renderAll, type ProvisionSelection } from "../src/core/provision.js";
 import type { CanonicalAgent, CanonicalSkill } from "../src/core/schema.js";
 import { ENGINE_VERSION } from "../src/core/version.js";
-import { ensureHandoffDir, writeOutputs } from "../src/core/writer.js";
+import { ensureOutputDir, writeOutputs } from "../src/core/writer.js";
 import type { CanonicalContent } from "../src/core/loader.js";
 
 // Drive `confirm()` programmatically instead of needing a real TTY.
@@ -41,7 +41,7 @@ const AGENT: CanonicalAgent = {
   tier: "fast",
   tools: ["read"],
   skills: ["typescript"],
-  body: "## role\n\nyou plan work. write output to {{handoff.dir}}/plan.md.\n\n## your skills\n\n{{skills}}\n",
+  body: "## role\n\nyou plan work. write output to {{output}}/plan.md.\n\n## your skills\n\n{{skills}}\n",
   sourcePath: "/fake/agents/planner.md",
 };
 
@@ -53,7 +53,7 @@ const CONTENT: CanonicalContent = {
 const SELECTION: ProvisionSelection = {
   agentIds: ["planner"],
   harnesses: ["claude"],
-  handoffDir: "docs",
+  outputDir: "docs",
 };
 
 const AGENT_FILE = ".claude/agents/planner.md";
@@ -75,7 +75,7 @@ afterEach(async () => {
 async function provision(): Promise<void> {
   const outputs = renderAll(CONTENT, SELECTION);
   await writeOutputs(projectRoot, outputs);
-  await ensureHandoffDir(projectRoot, SELECTION.handoffDir);
+  await ensureOutputDir(projectRoot, SELECTION.outputDir);
   await writeLockfile(projectRoot, buildLockfile(CONTENT, outputs, SELECTION, ENGINE_VERSION));
 }
 
@@ -104,7 +104,7 @@ describe("runQuench", () => {
     expect(await exists(LOCKFILE_PATH)).toBe(true);
   });
 
-  it("removes provisioned files and the lockfile, keeping the handoff dir by default", async () => {
+  it("removes provisioned files and the lockfile, keeping the output dir by default", async () => {
     await provision();
     confirmMock.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
 
@@ -116,7 +116,7 @@ describe("runQuench", () => {
     expect(await exists("docs")).toBe(true);
   });
 
-  it("also removes the handoff directory when confirmed", async () => {
+  it("also removes the output directory when confirmed", async () => {
     await provision();
     confirmMock.mockResolvedValueOnce(true).mockResolvedValueOnce(true);
 

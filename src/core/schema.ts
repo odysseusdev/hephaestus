@@ -34,9 +34,11 @@ export type AbstractTool = (typeof ABSTRACT_TOOLS)[number];
 
 /**
  * Template tokens the agent-body renderer understands. Any other `{{token}}` in a
- * canonical agent body is rejected at load time.
+ * canonical agent body is left untouched at render time — agent bodies may
+ * legitimately contain placeholders that belong to a different templating
+ * system or are literal doc examples.
  */
-export const KNOWN_TOKENS = ["handoff.dir", "skills"] as const;
+export const KNOWN_TOKENS = ["output", "skills"] as const;
 export type KnownToken = (typeof KNOWN_TOKENS)[number];
 
 /** Lowercase, hyphen-separated identifier (e.g. `shadcn-ux`). */
@@ -132,8 +134,8 @@ export const engineConfigSchema = z
   .object({
     /** Absolute path to the canonical content root (contains agents/ and skills/). */
     contentDir: z.string().min(1),
-    /** Default handoff directory offered during `init`. */
-    defaultHandoffDir: z.string().min(1).default(".hephaestus"),
+    /** Default output directory offered during `init`. */
+    defaultOutputDir: z.string().min(1).default(".hephaestus"),
   })
   .strict();
 export type EngineConfig = z.infer<typeof engineConfigSchema>;

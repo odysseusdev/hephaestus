@@ -34,7 +34,7 @@ describe("loadCanonical — validation failures", () => {
   });
 
   function config(): EngineConfig {
-    return { contentDir: dir, defaultHandoffDir: "docs" };
+    return { contentDir: dir, defaultOutputDir: "docs" };
   }
 
   async function writeAgent(id: string, body: string): Promise<void> {
@@ -63,12 +63,15 @@ describe("loadCanonical — validation failures", () => {
     await expect(loadCanonical(config())).rejects.toThrow(/unknown skill "ghost"/);
   });
 
-  it("rejects an unknown template token", async () => {
+  it("loads an agent body containing an unknown template token unchanged", async () => {
     await writeAgent(
       "planner",
       `---\nid: planner\nname: Planner\nsummary: s\ndescription: d\ntier: fast\n---\n\nbody {{handoff.inputs}}\n`,
     );
-    await expect(loadCanonical(config())).rejects.toThrow(/unknown template token/);
+    const content = await loadCanonical(config());
+    const agent = content.agents.get("planner");
+    expect(agent).toBeDefined();
+    expect(agent?.body).toContain("{{handoff.inputs}}");
   });
 
   it("rejects a file name that does not match the frontmatter id", async () => {

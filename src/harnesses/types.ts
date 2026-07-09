@@ -12,15 +12,15 @@ export interface RenderedFile {
 export interface RenderContext {
   harnessId: HarnessId;
   /**
-   * Project-relative, POSIX-form path to the handoff dir (e.g. `.hephaestus`) —
-   * used to expand `{{handoff.dir}}` as-is. Left unresolved deliberately: this
-   * value is baked into rendered agent files, which may be committed and
-   * cloned to a different machine/path, so it must not carry an
+   * Project-relative, POSIX-form path to the output dir (e.g. `.hephaestus`) —
+   * used to expand `{{output}}` as-is. Left unresolved
+   * deliberately: this value is baked into rendered agent files, which may be
+   * committed and cloned to a different machine/path, so it must not carry an
    * environment-specific absolute prefix. Agents resolve it against the
-   * project root themselves at runtime (see the handoff directory resolution
+   * project root themselves at runtime (see the output directory resolution
    * rule in canonical skill docs).
    */
-  handoffDir: string;
+  outputDir: string;
   tier: Tier;
 }
 

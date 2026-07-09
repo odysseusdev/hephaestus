@@ -1,3 +1,6 @@
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
 import { Command } from "commander";
 
 import { runForge } from "./commands/forge.js";
@@ -13,7 +16,7 @@ import { bold, dim, theme } from "./ui/theme.js";
 const DRIFT_STRATEGIES: readonly DriftStrategy[] = ["overwrite", "cancel", "merge"];
 
 /** Parse and validate a `--strategy` value. */
-function parseStrategy(value: string): DriftStrategy {
+export function parseStrategy(value: string): DriftStrategy {
   if (!DRIFT_STRATEGIES.includes(value as DriftStrategy)) {
     throw new Error(`invalid --strategy "${value}". use one of: ${DRIFT_STRATEGIES.join(", ")}.`);
   }
@@ -21,13 +24,13 @@ function parseStrategy(value: string): DriftStrategy {
 }
 
 /** Print a themed, actionable error line for an unknown thrown value. */
-function printError(error: unknown): void {
+export function printError(error: unknown): void {
   const message: string = error instanceof Error ? error.message : String(error);
   process.stderr.write(`\n${theme.danger("✖")} ${message}\n`);
 }
 
 /** Run an async command, printing a clean error and exiting non-zero on failure. */
-async function guard(action: () => Promise<void>): Promise<void> {
+export async function guard(action: () => Promise<void>): Promise<void> {
   try {
     await action();
   } catch (error: unknown) {
@@ -37,7 +40,7 @@ async function guard(action: () => Promise<void>): Promise<void> {
 }
 
 /** Build and configure the commander CLI program. */
-function buildProgram(): Command {
+export function buildProgram(): Command {
   const program = new Command();
 
   const helpBanner = [
@@ -114,7 +117,7 @@ function buildProgram(): Command {
  * rejecting an invalid `--strategy` value) — those otherwise escape `guard()`
  * entirely and print a raw Node stack trace instead of the themed error line.
  */
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   try {
     await buildProgram().parseAsync(process.argv);
   } catch (error: unknown) {
@@ -123,4 +126,22 @@ async function main(): Promise<void> {
   }
 }
 
-await main();
+/**
+ * Only auto-run when this file is the process entry point (i.e. invoked as the
+ * actual `hephaestus` binary), not when it's `import`-ed as a module — e.g. by
+ * unit tests exercising {@link buildProgram}/{@link guard}/{@link printError}
+ * directly. Without this guard, merely importing the module would parse
+ * whatever `process.argv` happens to belong to the importing process (the
+ * test runner's own args), which is neither correct nor safely importable.
+ *
+ * `realpathSync` (not `path.resolve`) is required here: package managers
+ * install the `hephaestus` bin as a symlink, and Node's ESM loader resolves
+ * that symlink when producing `import.meta.url` but leaves `process.argv[1]`
+ * as the symlink path, so a plain string-resolve comparison never matches.
+ */
+const isEntryPoint: boolean =
+  process.argv[1] !== undefined && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (isEntryPoint) {
+  await main();
+}

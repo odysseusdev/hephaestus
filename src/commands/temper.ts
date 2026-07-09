@@ -110,7 +110,12 @@ export async function runTemper(
     "heat, then cool — rework what was forged.",
   );
 
-  const lockfile = await readLockfile(projectRoot);
+  const lockfile = await readLockfile(projectRoot, (fromVersion, toVersion) => {
+    note(
+      `${theme.accent(LOCKFILE_NAME)} is v${fromVersion}, migrating to v${toVersion}...`,
+      "migrating lockfile",
+    );
+  });
   if (!lockfile) {
     note(
       `no ${theme.accent(LOCKFILE_NAME)} found. run ${theme.accent("hephaestus forge")} first.`,

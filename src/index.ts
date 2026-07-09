@@ -8,7 +8,7 @@
 export {
   loadConfig,
   CONTENT_DIR_ENV,
-  DEFAULT_HANDOFF_DIR,
+  DEFAULT_OUTPUT_DIR,
   EngineConfigNotFoundError,
 } from "./core/config.js";
 export {
@@ -44,10 +44,14 @@ export {
   writeLockfile,
   LOCKFILE_NAME,
   LOCKFILE_VERSION,
+  LockfileError,
+  LockfileTooNewError,
   type Lockfile,
+  type LockfileMigrationNotice,
 } from "./core/lockfile.js";
+export { LOCKFILE_MIGRATIONS, applyMigrations, type LockfileMigration } from "./core/lockfile-migrations.js";
 export { hashContents, rollupHash } from "./core/hash.js";
-export { writeOutputs, ensureHandoffDir } from "./core/writer.js";
+export { writeOutputs, ensureOutputDir } from "./core/writer.js";
 export {
   expandTokens,
   formatHandoffList,

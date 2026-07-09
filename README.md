@@ -51,7 +51,7 @@ npm link
    ```bash
    hephaestus forge
    ```
-   follow the prompts — pick agents, pick harnesses, confirm a handoff directory — and your selected agents land in all the right places.
+   follow the prompts — pick agents, pick harnesses, confirm an output directory — and your selected agents land in all the right places.
 
 see [your canon](#-your-canon) for the directory structure and file formats `bind` expects.
 
@@ -69,14 +69,6 @@ hephaestus reads from a **canonical source** — a folder you own and maintain, 
       conventions.md
 ```
 
-### handoffs
-
-a **handoff** is a markdown file an agent writes when it finishes a task — what it did, decisions it made, context for whatever runs next. handoffs keep multi-agent chains coherent without bloating every prompt with full history, and leave a trail you can audit afterwards.
-
-the handoff directory is set per project during `forge` (default `.hephaestus/`) and is referenced inside agent bodies via `{{handoff.dir}}`.
-
-naming convention: `YYYY-MM-DD-<role>-<short-description>.md`, e.g. `2026-06-29-build-fix-token-expiry.md`.
-
 ### agents
 
 each agent is a single markdown file at `agents/<id>.md`. `id` must be a lowercase, hyphen-separated slug and must match the filename exactly.
@@ -91,10 +83,12 @@ category: meta
 summary: creates a new canonical agent file from a description.
 description: creates a new canonical agent file from a description. use when a new agent needs to be added to the hephaestus content directory.
 tier: balanced
-tools: [read, write, search]
-skills: [hephaestus]
+tools: [read, write, search, websearch, webfetch]
+skills: [agent-output, hephaestus]
 ---
 ```
+
+(taken straight from [`examples/agents/agent-creator.md`](examples/agents/agent-creator.md) — see that file for a full worked body.)
 
 | field            | required | notes                                                                                   |
 | ---------------- | -------- | --------------------------------------------------------------------------------------- |
@@ -120,14 +114,16 @@ copilot and codex tiers are reserved but not yet wired in. use `modelOverrides` 
 
 **tokens:**
 
-the agent body is plain markdown. hephaestus expands two template tokens at forge time — any other `{{token}}` fails validation the moment hephaestus reads from the canonical source:
+the agent body is plain markdown. hephaestus expands two template tokens at forge time — any other `{{token}}` is left untouched, so agent bodies can safely contain their own placeholder syntax:
 
-| token             | expands to                                                                                               |
-| ----------------- | -------------------------------------------------------------------------------------------------------- |
-| `{{handoff.dir}}` | the project-relative path to the configured handoff directory. resolved fresh on every `forge`/`temper`. |
-| `{{skills}}`      | a markdown table linking every skill the agent declares, relative to the agent's location.               |
+| token        | expands to                                                                                              |
+| ------------ | ------------------------------------------------------------------------------------------------------- |
+| `{{output}}` | the project-relative path to the configured output directory. resolved fresh on every `forge`/`temper`. |
+| `{{skills}}` | a markdown table linking every skill the agent declares, relative to the agent's location.              |
 
 `{{skills}}` matters more than it looks — it's the only thing that turns a `skills:` frontmatter list into something the agent can actually read at runtime. declare a skill without using this token and the harness never sees it. by convention it sits alone in a closing `## your skills` section.
+
+`{{output}}` points at a provisioned output directory (default `.hephaestus/`, set per project during `forge`) — a place for agents to write things, handoffs, research notes, decisions, whatever. hephaestus has no opinion on what goes there or in what format, and you don't have to use it at all. the example agents under [`examples/`](examples/) write handoff files there by convention; see the `agent-output` skill under `examples/skills/` if you want that format.
 
 ### skills
 
@@ -162,7 +158,7 @@ the path must contain both `agents/` and `skills/` subdirectories. set `HEPHAEST
 
 _strike the anvil — shape canonical source into provisioned harness files._
 
-interactive provisioning. loads canonical content, then walks you through agent selection, harness selection, and handoff directory. writes provisioned files and a `hephaestus.lock.yaml` lockfile into the project. if no canon directory is configured yet, `forge` runs the bind prompt inline.
+interactive provisioning. loads canonical content, then walks you through agent selection, harness selection, and agent output directory. writes provisioned files and a `hephaestus.lock.yaml` lockfile into the project. if no canon directory is configured yet, `forge` runs the bind prompt inline.
 
 ```bash
 hephaestus forge                 # target the current directory
@@ -174,7 +170,7 @@ hephaestus forge --force         # re-initialise even if a lockfile exists
 
 _survey the work — catalogue what has been provisioned._
 
-read-only status report. shows provisioned agents (tiers, skills), active harnesses, handoff directory, and any pending drift.
+read-only status report. shows provisioned agents (tiers, skills), active harnesses, output directory, and any pending drift.
 
 ```bash
 hephaestus inventory
@@ -200,7 +196,7 @@ hephaestus temper --dir ./app
 
 _put out the forge — dissolve the provisioning entirely._
 
-removes every provisioned file tracked by the lockfile, cleans up empty skill directories, and deletes the lockfile. confirms before deleting. also offers to remove the handoff directory.
+removes every provisioned file tracked by the lockfile, cleans up empty skill directories, and deletes the lockfile. confirms before deleting. also offers to remove the output directory.
 
 ```bash
 hephaestus quench
@@ -216,6 +212,10 @@ at a very high level: `temper` re-renders canonical, hashes what's on disk, and 
 ## 🤝 contributing
 
 see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## 🤖 ai disclosure
+
+some of this was built with ai help (github copilot, claude), reviewed and tested by a human along the way. if your org needs ai-usage disclosure for dependencies, that's the deal here — ai as a dev aid, not flying solo.
 
 ## ⚖️ license
 

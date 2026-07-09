@@ -17,9 +17,9 @@ export async function writeOutputs(
 }
 
 /**
- * Create the (empty) handoff directory. Agents create their own files at
+ * Create the (empty) output directory. Agents create their own files at
  * runtime; the CLI only ensures the directory exists.
  */
-export async function ensureHandoffDir(projectRoot: string, handoffDir: string): Promise<void> {
-  await ensureDir(toProjectPath(projectRoot, handoffDir));
+export async function ensureOutputDir(projectRoot: string, outputDir: string): Promise<void> {
+  await ensureDir(toProjectPath(projectRoot, outputDir));
 }

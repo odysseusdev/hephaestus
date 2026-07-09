@@ -23,7 +23,7 @@ export function selectionFromLock(lockfile: Lockfile, content: CanonicalContent)
   return {
     agentIds,
     harnesses: [...lockfile.harnesses] as HarnessId[],
-    handoffDir: lockfile.handoffDir,
+    outputDir: lockfile.outputDir,
   };
 }
 
@@ -33,7 +33,7 @@ export interface ProvisionSelection {
   agentIds: string[];
   harnesses: HarnessId[];
   /** e.g. `docs` */
-  handoffDir: string;
+  outputDir: string;
 }
 
 /** Derive the ordered, deduplicated skill id list for the given agent ids. */
@@ -69,14 +69,14 @@ function withHashes(files: RenderedFile[]): HashedFile[] {
  * Render every selected agent and skill into every selected harness, in memory.
  * The result is the basis for both writing (forge) and drift computation (temper).
  *
- * `selection.handoffDir` stays project-relative throughout — that's what's
+ * `selection.outputDir` stays project-relative throughout — that's what's
  * stored in the lockfile, and it's also what gets expanded into the
- * `{{handoff.dir}}` token in rendered agent bodies, unresolved. Baking an
- * absolute path into rendered output would break the moment those files are
- * committed and cloned to a different machine or path. Agents resolve the
- * relative token against the project root themselves at runtime (see the
- * handoff directory resolution rule in canonical skill docs); hephaestus's own
- * filesystem operations (e.g. {@link ensureHandoffDir}) resolve it separately.
+ * `{{output}}` token in rendered agent bodies, unresolved. Baking an absolute
+ * path into rendered output would break the moment those files are committed
+ * and cloned to a different machine or path. Agents resolve the relative
+ * token against the project root themselves at runtime (see the output
+ * directory resolution rule in canonical skill docs); hephaestus's own
+ * filesystem operations (e.g. {@link ensureOutputDir}) resolve it separately.
  *
  * @throws If a selected agent or skill id is not present in canonical content.
  */
@@ -97,7 +97,7 @@ export function renderAll(
       }
       const ctx: RenderContext = {
         harnessId,
-        handoffDir: selection.handoffDir,
+        outputDir: selection.outputDir,
         tier: agent.tier,
       };
       const file: RenderedFile = harness.renderAgent(agent, ctx, content.skills);
@@ -256,7 +256,7 @@ export function buildLockfile(
   return {
     version: LOCKFILE_VERSION,
     engineVersion,
-    handoffDir: selection.handoffDir,
+    outputDir: selection.outputDir,
     harnesses: [...selection.harnesses],
     agents,
     skills,

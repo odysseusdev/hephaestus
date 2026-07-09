@@ -54,7 +54,7 @@ function collectTrackedPaths(lockfile: Lockfile): TrackedPaths {
 
 /**
  * Run the `quench` command: remove all provisioned files, clean up empty skill
- * dirs, delete the lockfile, and optionally remove the handoff directory.
+ * dirs, delete the lockfile, and optionally remove the output directory.
  */
 export async function runQuench(options: QuenchOptions): Promise<void> {
   const projectRoot = resolve(options.dir);
@@ -108,14 +108,14 @@ export async function runQuench(options: QuenchOptions): Promise<void> {
   // Lockfile last — deleting it is the point of no return.
   await removeFile(toProjectPath(projectRoot, LOCKFILE_NAME));
 
-  const handoffDir = lockfile.handoffDir;
-  const removeHandoff = await confirm(
-    `also remove handoff directory ${theme.accent(`${handoffDir}/`)}? (may contain agent runtime files)`,
+  const outputDir = lockfile.outputDir;
+  const removeOutput = await confirm(
+    `also remove output directory ${theme.accent(`${outputDir}/`)}? (may contain agent runtime files)`,
     false,
   );
-  if (removeHandoff) {
-    await removeDir(toProjectPath(projectRoot, handoffDir));
-    note(`${theme.danger(`${handoffDir}/`)} removed.`, "handoff");
+  if (removeOutput) {
+    await removeDir(toProjectPath(projectRoot, outputDir));
+    note(`${theme.danger(`${outputDir}/`)} removed.`, "output");
   }
 
   const summary: string[] = [

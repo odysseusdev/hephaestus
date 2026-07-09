@@ -7,8 +7,8 @@ import { engineConfigSchema, type EngineConfig } from "./schema.js";
 /** Environment variable that overrides the canonical content directory. */
 export const CONTENT_DIR_ENV = "HEPHAESTUS_CANON_DIR";
 
-/** Default handoff directory when the user does not override it at `forge` time. */
-export const DEFAULT_HANDOFF_DIR = ".hephaestus";
+/** Default output directory when the user does not override it at `forge` time. */
+export const DEFAULT_OUTPUT_DIR = ".hephaestus";
 
 /**
  * Thrown when no canonical content directory can be located. Commands that can
@@ -48,6 +48,6 @@ export function loadConfig(): EngineConfig {
 
   return engineConfigSchema.parse({
     contentDir,
-    defaultHandoffDir: DEFAULT_HANDOFF_DIR,
+    defaultOutputDir: DEFAULT_OUTPUT_DIR,
   });
 }
