@@ -42,7 +42,7 @@ npm link
 
 ## 🚀 getting started
 
-1. **define a canonical source.** anywhere on disk. the repo ships example agents and skills under [`examples/`](examples/) to get you started: `agent-creator` and `skill-creator` scaffold new canonical files for you, guided by the [hephaestus format skills](#-skills) that document the rules.
+1. **define a canonical source.** anywhere on disk. the repo ships example agents and skills under [`examples/`](examples/) to get you started: `agent-creator` and `skill-creator` scaffold new canonical files for you, guided by the [hephaestus format skills](#skills) that document the rules.
 2. **bind hephaestus to it:**
    ```bash
    hephaestus bind ~/<canon-dir>
