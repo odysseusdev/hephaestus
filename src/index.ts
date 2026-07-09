@@ -1,6 +1,6 @@
 /**
- * Public programmatic entry point. The engine is standalone — it has no bundled
- * content. Point it at your own canonical source via `hephaestus bind`, the
+ * public programmatic entry point. the engine is standalone — it has no bundled
+ * content. point it at your own canonical source via `hephaestus bind`, the
  * `HEPHAESTUS_CANON_DIR` environment variable, or by calling `loadConfig` after
  * writing a global config with `writeGlobalConfig`.
  */

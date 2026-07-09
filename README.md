@@ -4,7 +4,7 @@
 
 # hephaestus
 
-![npm](https://img.shields.io/badge/npm-v0.1.0-cb3837?style=flat-square&logo=npm&logoColor=white)
+[![npm](https://img.shields.io/npm/v/%40odysseusdev%2Fhephaestus?style=flat-square&logo=npm&logoColor=white&color=cb3837)](https://www.npmjs.com/package/@odysseusdev/hephaestus)
 ![node](https://img.shields.io/badge/node-%3E%3D20-339933?style=flat-square&logo=nodedotjs&logoColor=white)
 [![ci](https://img.shields.io/github/actions/workflow/status/odysseusdev/hephaestus/ci.yml?branch=main&style=flat-square&label=ci)](https://github.com/odysseusdev/hephaestus/actions/workflows/ci.yml)
 ![license](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -30,14 +30,16 @@ you write an agent once, as a markdown file with a bit of frontmatter. hephaestu
 
 ## 📦 install
 
-not yet published to npm. clone and link globally:
+install globally with npm, or your preferred package manager:
 
 ```bash
-git clone https://github.com/odysseusdev/hephaestus
-cd hephaestus
-npm install
-npm run build
-npm link
+npm install -g @odysseusdev/hephaestus
+```
+
+or run it without installing:
+
+```bash
+npx @odysseusdev/hephaestus
 ```
 
 ## 🚀 getting started

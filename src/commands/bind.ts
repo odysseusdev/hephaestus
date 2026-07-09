@@ -9,18 +9,18 @@ import {
 import { assertInteractive, intro, note, outro, text } from "../ui/prompts.js";
 import { theme } from "../ui/theme.js";
 
-/** Options accepted by the `bind` command. */
+/** options accepted by the `bind` command. */
 export interface BindOptions {
-  /** Optional path provided as a positional argument. Prompts interactively if absent. */
+  /** optional path provided as a positional argument. prompts interactively if absent. */
   path?: string;
 }
 
 /**
- * Resolve a raw (possibly `~`-prefixed) path to an absolute canon directory and
- * validate it. Prints the themed error and cancellation outro on failure so
+ * resolve a raw (possibly `~`-prefixed) path to an absolute canon directory and
+ * validate it. prints the themed error and cancellation outro on failure so
  * both the `--path` and interactive branches of `runBind` behave identically.
  *
- * @returns The resolved absolute path, or `null` if validation failed (the
+ * @returns the resolved absolute path, or `null` if validation failed (the
  *   caller should return immediately in that case).
  */
 function resolveAndValidate(raw: string): string | null {
@@ -36,8 +36,8 @@ function resolveAndValidate(raw: string): string | null {
 }
 
 /**
- * Run the `bind` command: set or update the global canonical content directory.
- * When a path is provided it is validated immediately; otherwise the user is
+ * run the `bind` command: set or update the global canonical content directory.
+ * when a path is provided it is validated immediately; otherwise the user is
  * prompted interactively.
  */
 export async function runBind(options: BindOptions): Promise<void> {

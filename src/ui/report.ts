@@ -3,10 +3,10 @@ import type { CanonicalAgent, HarnessId } from "../core/schema.js";
 import type { SyncDecision } from "../core/sync.js";
 import { bold, dim, theme } from "./theme.js";
 
-/** Category key agents fall under when they declare no explicit `category`. */
+/** category key agents fall under when they declare no explicit `category`. */
 const GENERAL_CATEGORY = "general";
 
-/** Tally of sync decisions, for the closing summary line. */
+/** tally of sync decisions, for the closing summary line. */
 export interface SyncCounts {
   created: number;
   updated: number;
@@ -15,7 +15,7 @@ export interface SyncCounts {
   drifted: number;
 }
 
-/** A glyph + colour per sync decision, for per-file reporting. */
+/** a glyph + colour per sync decision, for per-file reporting. */
 const DECISION_STYLE: Record<SyncDecision, { glyph: string; paint: (s: string) => string }> = {
   create: { glyph: "+", paint: theme.success },
   update: { glyph: "↑", paint: theme.success },
@@ -24,15 +24,15 @@ const DECISION_STYLE: Record<SyncDecision, { glyph: string; paint: (s: string) =
   drift: { glyph: "!", paint: theme.conflict },
 };
 
-/** A short, coloured label describing a per-file decision. */
+/** a short, coloured label describing a per-file decision. */
 export function decisionLine(decision: SyncDecision, path: string): string {
   const style = DECISION_STYLE[decision];
   return `${style.paint(style.glyph)} ${style.paint(decision.padEnd(6))} ${theme.text(path)}`;
 }
 
 /**
- * Group canonical agents into named categories for the forge select prompt, falling back
- * to "general" when an agent declares none. Category keys are sorted alphabetically, with
+ * group canonical agents into named categories for the forge select prompt, falling back
+ * to "general" when an agent declares none. category keys are sorted alphabetically, with
  * "general" always last.
  */
 export function groupAgentsByCategory(agents: CanonicalAgent[]): Map<string, CanonicalAgent[]> {
@@ -59,8 +59,8 @@ export function groupAgentsByCategory(agents: CanonicalAgent[]): Map<string, Can
 }
 
 /**
- * Reference block listing every agent's name and short (<=80 char) `summary`,
- * one per line, for display via `note()` before the select prompt. Uses
+ * reference block listing every agent's name and short (<=80 char) `summary`,
+ * one per line, for display via `note()` before the select prompt. uses
  * `summary` rather than the unbounded `description` so lines never wrap or
  * overflow the terminal width in the forge preview box.
  */
@@ -75,7 +75,7 @@ export function agentDescriptionsBlock(agents: CanonicalAgent[]): string {
   return lines.join("\n");
 }
 
-/** Render the per-harness file summary for the forge preview. */
+/** render the per-harness file summary for the forge preview. */
 export function provisionSummary(outputs: RenderedOutput[]): string {
   const byHarness: Map<HarnessId, string[]> = new Map();
 
@@ -114,7 +114,7 @@ export function tallySyncDecision(counts: SyncCounts, decision: SyncDecision): v
   }
 }
 
-/** Render the closing summary tally after a temper run. */
+/** render the closing summary tally after a temper run. */
 export function syncSummary(counts: SyncCounts): string {
   const parts: string[] = [
     theme.success(`${counts.created} created`),

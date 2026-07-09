@@ -19,24 +19,24 @@ import { assertInteractive, intro, note, outro, select } from "../ui/prompts.js"
 import { decisionLine, syncSummary, tallySyncDecision, type SyncCounts } from "../ui/report.js";
 import { dim, theme } from "../ui/theme.js";
 
-/** Options accepted by the `temper` command. */
+/** options accepted by the `temper` command. */
 export interface TemperOptions {
   dir: string;
   dryRun: boolean;
   strategy?: DriftStrategy;
 }
 
-/** The recorded (new) hash to store in the lock for a single output file. */
+/** the recorded (new) hash to store in the lock for a single output file. */
 interface FileOutcome {
   path: string;
   decision: SyncDecision;
-  /** Bytes to write, or null to leave the disk file untouched. */
+  /** bytes to write, or null to leave the disk file untouched. */
   write: string | Uint8Array | null;
-  /** Hash to record in the new lockfile, or undefined to drop the entry. */
+  /** hash to record in the new lockfile, or undefined to drop the entry. */
   recordHash: string | undefined;
 }
 
-/** Prompt the user to choose a drift resolution strategy for a single file. */
+/** prompt the user to choose a drift resolution strategy for a single file. */
 async function promptStrategy(path: string): Promise<DriftStrategy> {
   assertInteractive(
     "resolve drift non-interactively with `hephaestus temper --strategy <overwrite|cancel|merge>`.",
@@ -52,7 +52,7 @@ async function promptStrategy(path: string): Promise<DriftStrategy> {
   );
 }
 
-/** Decide and (unless dry-run) apply the sync outcome for one output file. */
+/** decide and (unless dry-run) apply the sync outcome for one output file. */
 async function processFile(
   output: RenderedOutput,
   file: { path: string; contents: string | Uint8Array; hash: string },
@@ -73,7 +73,7 @@ async function processFile(
     return { path: file.path, decision, write: null, recordHash: file.hash };
   }
   if (decision === "keep") {
-    // Upstream unchanged — preserve the user's edit and existing lock hash.
+    // upstream unchanged — preserve the user's edit and existing lock hash.
     return { path: file.path, decision, write: null, recordHash: lockHash };
   }
 
@@ -93,10 +93,10 @@ async function processFile(
 }
 
 /**
- * Run the `temper` command: re-render canonical and reconcile with the project
+ * run the `temper` command: re-render canonical and reconcile with the project
  * per the three-way decision table, honouring `--dry-run` and `--strategy`.
  *
- * @param contentOverride - Pre-loaded canonical content. When provided,
+ * @param contentOverride - pre-loaded canonical content. when provided,
  *   `loadCanonical` is skipped entirely (useful for testing).
  */
 export async function runTemper(

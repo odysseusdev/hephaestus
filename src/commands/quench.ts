@@ -5,21 +5,21 @@ import { LOCKFILE_NAME, readLockfile, type LockOutput, type Lockfile } from "../
 import { confirm, intro, note, outro } from "../ui/prompts.js";
 import { theme } from "../ui/theme.js";
 
-/** Options accepted by the `quench` command. */
+/** options accepted by the `quench` command. */
 export interface QuenchOptions {
   dir: string;
 }
 
-/** All paths collected from the lockfile that quench will remove. */
+/** all paths collected from the lockfile that quench will remove. */
 interface TrackedPaths {
-  /** Project-root-relative POSIX paths of every provisioned file. */
+  /** project-root-relative POSIX paths of every provisioned file. */
   filePaths: string[];
-  /** Base directories of multi-file skill outputs, candidates for rmdir. */
+  /** base directories of multi-file skill outputs, candidates for rmdir. */
   skillDirs: Set<string>;
 }
 
 /**
- * Walk the lockfile and collect every tracked file path, plus skill output
+ * walk the lockfile and collect every tracked file path, plus skill output
  * base dirs so empty dirs can be pruned afterward.
  */
 function collectTrackedPaths(lockfile: Lockfile): TrackedPaths {
@@ -53,7 +53,7 @@ function collectTrackedPaths(lockfile: Lockfile): TrackedPaths {
 }
 
 /**
- * Run the `quench` command: remove all provisioned files, clean up empty skill
+ * run the `quench` command: remove all provisioned files, clean up empty skill
  * dirs, delete the lockfile, and optionally remove the output directory.
  */
 export async function runQuench(options: QuenchOptions): Promise<void> {
@@ -100,12 +100,12 @@ export async function runQuench(options: QuenchOptions): Promise<void> {
     }
   }
 
-  // Try to remove empty skill directories (non-recursive, best-effort).
+  // try to remove empty skill directories (non-recursive, best-effort).
   for (const relDir of skillDirs) {
     await tryRemoveEmptyDir(toProjectPath(projectRoot, relDir));
   }
 
-  // Lockfile last — deleting it is the point of no return.
+  // lockfile last — deleting it is the point of no return.
   await removeFile(toProjectPath(projectRoot, LOCKFILE_NAME));
 
   const outputDir = lockfile.outputDir;

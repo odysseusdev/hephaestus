@@ -12,10 +12,10 @@ import { ENGINE_VERSION } from "./core/version.js";
 import type { DriftStrategy } from "./core/sync.js";
 import { bold, dim, theme } from "./ui/theme.js";
 
-/** Valid drift strategies accepted by `--strategy`. */
+/** valid drift strategies accepted by `--strategy`. */
 const DRIFT_STRATEGIES: readonly DriftStrategy[] = ["overwrite", "cancel", "merge"];
 
-/** Parse and validate a `--strategy` value. */
+/** parse and validate a `--strategy` value. */
 export function parseStrategy(value: string): DriftStrategy {
   if (!DRIFT_STRATEGIES.includes(value as DriftStrategy)) {
     throw new Error(`invalid --strategy "${value}". use one of: ${DRIFT_STRATEGIES.join(", ")}.`);
@@ -23,13 +23,13 @@ export function parseStrategy(value: string): DriftStrategy {
   return value as DriftStrategy;
 }
 
-/** Print a themed, actionable error line for an unknown thrown value. */
+/** print a themed, actionable error line for an unknown thrown value. */
 export function printError(error: unknown): void {
   const message: string = error instanceof Error ? error.message : String(error);
   process.stderr.write(`\n${theme.danger("✖")} ${message}\n`);
 }
 
-/** Run an async command, printing a clean error and exiting non-zero on failure. */
+/** run an async command, printing a clean error and exiting non-zero on failure. */
 export async function guard(action: () => Promise<void>): Promise<void> {
   try {
     await action();
@@ -39,7 +39,7 @@ export async function guard(action: () => Promise<void>): Promise<void> {
   }
 }
 
-/** Build and configure the commander CLI program. */
+/** build and configure the commander CLI program. */
 export function buildProgram(): Command {
   const program = new Command();
 
@@ -112,7 +112,7 @@ export function buildProgram(): Command {
 }
 
 /**
- * Parse `argv` and dispatch to the matched command, catching any error thrown
+ * parse `argv` and dispatch to the matched command, catching any error thrown
  * synchronously during commander's own parse phase (e.g. a custom option parser
  * rejecting an invalid `--strategy` value) — those otherwise escape `guard()`
  * entirely and print a raw Node stack trace instead of the themed error line.
@@ -127,10 +127,10 @@ export async function main(): Promise<void> {
 }
 
 /**
- * Only auto-run when this file is the process entry point (i.e. invoked as the
+ * only auto-run when this file is the process entry point (i.e. invoked as the
  * actual `hephaestus` binary), not when it's `import`-ed as a module — e.g. by
  * unit tests exercising {@link buildProgram}/{@link guard}/{@link printError}
- * directly. Without this guard, merely importing the module would parse
+ * directly. without this guard, merely importing the module would parse
  * whatever `process.argv` happens to belong to the importing process (the
  * test runner's own args), which is neither correct nor safely importable.
  *

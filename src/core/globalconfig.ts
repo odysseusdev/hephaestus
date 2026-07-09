@@ -6,15 +6,15 @@ import { z } from "zod";
 
 import { describeError, writeFileAtomic } from "./fsops.js";
 
-/** Directory where hephaestus stores its global user config. */
+/** directory where hephaestus stores its global user config. */
 const GLOBAL_CONFIG_DIR: string = join(homedir(), ".config", "hephaestus");
 
-/** Absolute path to the global config file. */
+/** absolute path to the global config file. */
 export const GLOBAL_CONFIG_PATH: string = join(GLOBAL_CONFIG_DIR, "config.json");
 
 const globalConfigSchema = z
   .object({
-    /** Absolute path to the user's canonical content directory. */
+    /** absolute path to the user's canonical content directory. */
     canonDir: z
       .string()
       .min(1)
@@ -25,8 +25,8 @@ const globalConfigSchema = z
 export type GlobalConfig = z.infer<typeof globalConfigSchema>;
 
 /**
- * Expand a leading `~` to the current user's home directory.
- * Relative paths are returned as-is for the caller to resolve.
+ * expand a leading `~` to the current user's home directory.
+ * relative paths are returned as-is for the caller to resolve.
  */
 export function expandHome(rawPath: string): string {
   if (rawPath === "~" || rawPath.startsWith("~/")) {
@@ -36,10 +36,10 @@ export function expandHome(rawPath: string): string {
 }
 
 /**
- * Validate a candidate canonical content directory. It must exist and contain
+ * validate a candidate canonical content directory. it must exist and contain
  * both an `agents/` and a `skills/` subdirectory.
  *
- * @returns An error message string, or `null` if valid.
+ * @returns an error message string, or `null` if valid.
  */
 export function validateCanonDir(dirPath: string): string | null {
   if (!existsSync(dirPath)) {
@@ -55,17 +55,17 @@ export function validateCanonDir(dirPath: string): string | null {
 }
 
 /**
- * Read and validate the global config file. Returns `null` if the file does
- * not exist. Throws if the file exists but is invalid JSON or shape.
+ * read and validate the global config file. returns `null` if the file does
+ * not exist. throws if the file exists but is invalid JSON or shape.
  *
- * @param configPath Override path — used in tests. Defaults to {@link GLOBAL_CONFIG_PATH}.
+ * @param configPath override path — used in tests. defaults to {@link GLOBAL_CONFIG_PATH}.
  */
 export function readGlobalConfig(configPath: string = GLOBAL_CONFIG_PATH): GlobalConfig | null {
   if (!existsSync(configPath)) {
     return null;
   }
 
-  // Read and parse are wrapped separately so an IO failure (e.g. EACCES) is
+  // read and parse are wrapped separately so an IO failure (e.g. EACCES) is
   // reported with a friendly "failed to read" message — the same pattern
   // `readFileIfExists` in fsops.ts uses — rather than being misreported as
   // invalid JSON.
@@ -95,10 +95,10 @@ export function readGlobalConfig(configPath: string = GLOBAL_CONFIG_PATH): Globa
 }
 
 /**
- * Write the global config to disk. Creates the parent directory if needed.
+ * write the global config to disk. creates the parent directory if needed.
  *
- * @param config The config to save.
- * @param configPath Override path — used in tests. Defaults to {@link GLOBAL_CONFIG_PATH}.
+ * @param config the config to save.
+ * @param configPath override path — used in tests. defaults to {@link GLOBAL_CONFIG_PATH}.
  */
 export async function writeGlobalConfig(
   config: GlobalConfig,

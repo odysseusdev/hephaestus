@@ -14,14 +14,14 @@ import {
   type EngineConfig,
 } from "./schema.js";
 
-/** Validated canonical content: agents and skills keyed by id/name. */
+/** validated canonical content: agents and skills keyed by id/name. */
 export interface CanonicalContent {
   agents: Map<string, CanonicalAgent>;
   skills: Map<string, CanonicalSkill>;
 }
 
 /**
- * Error raised when canonical content fails validation. Aggregates every problem
+ * error raised when canonical content fails validation. aggregates every problem
  * so the user can fix them in one pass rather than one error at a time.
  */
 export class CanonicalLoadError extends Error {
@@ -36,7 +36,7 @@ export class CanonicalLoadError extends Error {
   }
 }
 
-/** Turn a Zod error into readable, path-prefixed lines for a given file. */
+/** turn a Zod error into readable, path-prefixed lines for a given file. */
 function formatZodError(label: string, error: ZodError): string[] {
   return error.issues.map((issue) => {
     const path: string = issue.path.join(".");
@@ -44,18 +44,18 @@ function formatZodError(label: string, error: ZodError): string[] {
   });
 }
 
-/** Convert an OS path to forward-slash form for portable storage/comparison. */
+/** convert an OS path to forward-slash form for portable storage/comparison. */
 function toPosix(value: string): string {
   return value.split(sep).join("/");
 }
 
 /**
- * A short, human-friendly form of `contentDir` for diagnostics: relative to the
+ * a short, human-friendly form of `contentDir` for diagnostics: relative to the
  * cwd when possible, falling back to the absolute path as-is.
  *
  * `path.relative` falls back to returning its (still-absolute) `to` argument
  * when the two paths have no common root — notably on Windows when `cwd` and
- * `contentDir` are on different drive letters. Displaying that fallback as if
+ * `contentDir` are on different drive letters. displaying that fallback as if
  * it were a relative path (e.g. prefixed into `<path>/agents`) reads as
  * confusing, so detect it and show the absolute path plainly instead.
  */
@@ -65,8 +65,8 @@ function displayContentDir(contentDir: string): string {
 }
 
 /**
- * Load and validate canonical skills under `<contentDir>/skills`. Each skill is
- * a directory with one or more `*.md` files. Directories without `.md` files
+ * load and validate canonical skills under `<contentDir>/skills`. each skill is
+ * a directory with one or more `*.md` files. directories without `.md` files
  * are silently skipped — no marker file required.
  */
 async function loadSkills(
@@ -75,7 +75,7 @@ async function loadSkills(
 ): Promise<Map<string, CanonicalSkill>> {
   const skills: Map<string, CanonicalSkill> = new Map();
 
-  // One glob for all skill .md files; group by parent dir to avoid a second per-dir pass.
+  // one glob for all skill .md files; group by parent dir to avoid a second per-dir pass.
   const allMdFiles: string[] = (
     await glob("skills/*/*.md", { cwd: config.contentDir, absolute: true })
   ).sort();
@@ -112,7 +112,7 @@ async function loadSkills(
 
     if (hasContentProblem) continue;
 
-    // Bundled non-.md resources (scripts, references, etc.).
+    // bundled non-.md resources (scripts, references, etc.).
     const allFiles: string[] = await glob("**/*", {
       cwd: dir,
       absolute: false,
@@ -126,7 +126,7 @@ async function loadSkills(
 
     const bundledFiles: BundledFile[] = [];
     for (const bundledPath of bundledPaths) {
-      // Read as raw bytes (no encoding) so binary bundled resources (images,
+      // read as raw bytes (no encoding) so binary bundled resources (images,
       // archives, etc.) round-trip losslessly instead of being forced through a
       // lossy UTF-8 decode/encode.
       const contents: Buffer = await readFile(join(dir, bundledPath));
@@ -145,8 +145,8 @@ async function loadSkills(
 }
 
 /**
- * Load and validate canonical agents under `<contentDir>/agents`,
- * cross-checking that every referenced skill is known. Unknown `{{token}}`
+ * load and validate canonical agents under `<contentDir>/agents`,
+ * cross-checking that every referenced skill is known. unknown `{{token}}`
  * placeholders in the body are permitted — they are left untouched at render
  * time (see {@link "./render"}) so agent bodies can legitimately contain
  * placeholders that are not hephaestus's own known tokens.
@@ -211,10 +211,10 @@ async function loadAgents(
 }
 
 /**
- * Load and validate all canonical content from disk. Aggregates every problem
+ * load and validate all canonical content from disk. aggregates every problem
  * into a single error so the user can fix them in one pass.
  *
- * @throws {CanonicalLoadError} If any agent or skill is invalid.
+ * @throws {CanonicalLoadError} if any agent or skill is invalid.
  */
 export async function loadCanonical(config: EngineConfig): Promise<CanonicalContent> {
   const problems: string[] = [];

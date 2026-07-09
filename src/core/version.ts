@@ -3,8 +3,8 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
- * Read the engine version from the nearest package.json, walking up from this
- * module. Returns `0.0.0` if no version can be determined.
+ * read the engine version from the nearest package.json, walking up from this
+ * module. returns `0.0.0` if no version can be determined.
  */
 function readEngineVersion(): string {
   let current: string = dirname(fileURLToPath(import.meta.url));
@@ -23,7 +23,7 @@ function readEngineVersion(): string {
           return (parsed as { version: string }).version;
         }
       } catch {
-        // Fall through to the default if package.json is unreadable.
+        // fall through to the default if package.json is unreadable.
       }
       return "0.0.0";
     }
@@ -36,5 +36,5 @@ function readEngineVersion(): string {
   }
 }
 
-/** The resolved engine (package) version. */
+/** the resolved engine (package) version. */
 export const ENGINE_VERSION: string = readEngineVersion();

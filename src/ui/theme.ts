@@ -1,7 +1,7 @@
 import pc from "picocolors";
 
 /**
- * Catppuccin Macchiato palette. Single source of truth for colour in the CLI.
+ * Catppuccin Macchiato palette. single source of truth for colour in the CLI.
  * @see https://catppuccin.com/palette
  */
 export const MACCHIATO = {
@@ -35,14 +35,14 @@ export const MACCHIATO = {
 
 export type PaletteColor = keyof typeof MACCHIATO;
 
-/** Parse a `#rrggbb` string into its RGB components. */
+/** parse a `#rrggbb` string into its RGB components. */
 function toRgb(hex: string): [number, number, number] {
   const value: number = Number.parseInt(hex.slice(1), 16);
   return [(value >> 16) & 0xff, (value >> 8) & 0xff, value & 0xff];
 }
 
 /**
- * Colour text using a 24-bit truecolor escape. Falls back to plain text when
+ * colour text using a 24-bit truecolor escape. falls back to plain text when
  * colour is not supported (NO_COLOR, non-TTY, dumb terminal).
  */
 export function paint(color: PaletteColor, text: string): string {
@@ -53,17 +53,17 @@ export function paint(color: PaletteColor, text: string): string {
   return `\x1b[38;2;${r};${g};${b}m${text}\x1b[39m`;
 }
 
-/** Embolden text (respects colour support). */
+/** embolden text (respects colour support). */
 export function bold(text: string): string {
   return pc.bold(text);
 }
 
-/** Dim text (respects colour support). */
+/** dim text (respects colour support). */
 export function dim(text: string): string {
   return pc.dim(text);
 }
 
-/** Semantic colour helpers — palette colours mapped to UI roles. */
+/** semantic colour helpers — palette colours mapped to UI roles. */
 export const theme = {
   accent: (text: string): string => paint("mauve", text),
   accentAlt: (text: string): string => paint("lavender", text),
