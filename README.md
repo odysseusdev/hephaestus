@@ -4,11 +4,13 @@
 
 # hephaestus
 
-[![npm](https://img.shields.io/npm/v/%40odysseusdev%2Fhephaestus?style=flat-square&logo=npm&logoColor=white&color=cb3837)](https://www.npmjs.com/package/@odysseusdev/hephaestus)
-![node](https://img.shields.io/badge/node-%3E%3D20-339933?style=flat-square&logo=nodedotjs&logoColor=white)
-[![ci](https://img.shields.io/github/actions/workflow/status/odysseusdev/hephaestus/ci.yml?branch=main&style=flat-square&label=ci)](https://github.com/odysseusdev/hephaestus/actions/workflows/ci.yml)
-![license](https://img.shields.io/badge/license-MIT-green?style=flat-square)
-![claude code](https://img.shields.io/badge/claude_code-supported-7B5EA7?style=flat-square)
+[![npm](https://img.shields.io/npm/v/%40odysseusdev%2Fhephaestus?style=for-the-badge&labelColor=363a4f&color=f5a97f&logo=npm&logoColor=white)](https://www.npmjs.com/package/@odysseusdev/hephaestus)
+![node](https://img.shields.io/badge/node-%3E%3D20-eed49f?style=for-the-badge&labelColor=363a4f&logo=nodedotjs&logoColor=white)
+![license](https://img.shields.io/badge/license-MIT-a6da95?style=for-the-badge&labelColor=363a4f)
+
+![claude code](https://img.shields.io/badge/claude_code-supported-c6a0f6?style=for-the-badge&labelColor=363a4f&)
+![copilot](https://img.shields.io/badge/copilot-coming_soon-6e738d?style=for-the-badge&labelColor=363a4f&)
+![codex](https://img.shields.io/badge/codex-coming_soon-6e738d?style=for-the-badge&labelColor=363a4f)
 
 **_forging ai agents fit for the gods._**
 
