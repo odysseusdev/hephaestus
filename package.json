@@ -60,6 +60,9 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
@@ -72,6 +75,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@catppuccin/vitepress": "^0.1.2",
     "@changesets/cli": "^2.31.0",
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",
@@ -81,6 +85,7 @@
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.4",
+    "vitepress": "^1.6.4",
     "vitest": "^3.2.4"
   }
 }

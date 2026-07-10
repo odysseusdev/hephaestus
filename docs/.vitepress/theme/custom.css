@@ -1,0 +1,104 @@
+/**
+ * Self-hosted fonts only. colors come from `@catppuccin/vitepress`
+ * (macchiato/mauve, wired in theme/index.ts), not overridden here.
+ */
+
+@font-face {
+  font-family: "CaskaydiaCove Propo";
+  src: url("/fonts/CaskaydiaCoveNerdFontPropo-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "CaskaydiaCove Propo";
+  src: url("/fonts/CaskaydiaCoveNerdFontPropo-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "CaskaydiaCove Mono";
+  src: url("/fonts/CaskaydiaCoveNerdFontMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "CaskaydiaCove Mono";
+  src: url("/fonts/CaskaydiaCoveNerdFontMono-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --vp-font-family-base: "CaskaydiaCove Propo", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --vp-font-family-mono: "CaskaydiaCove Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+html {
+  font-size: 14px;
+}
+
+/* add some wavy accents to the background */
+.Layout.banner {
+  position: relative;
+}
+
+.Layout.banner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: url("/banners/banner-top-light.svg"), url("/banners/banner-bottom-light.svg");
+  background-repeat: repeat-x, repeat-x;
+  background-position:
+    center top,
+    center bottom;
+  background-size:
+    1350px 300px,
+    1350px 450px;
+}
+
+.dark .Layout.banner::before {
+  background-image: url("/banners/banner-top-dark.svg"), url("/banners/banner-bottom-dark.svg");
+}
+
+/* remove the footer color so the wavy accents come through */
+.Layout.banner .VPFooter {
+  border-top: unset;
+  background-color: unset;
+}
+
+/* add some vertical padding to the features  */
+.VPFeatures {
+  padding-top: 24px !important;
+  padding-bottom: 72px !important;
+}
+
+/* remove the default top inset margin from the hero */
+@media (min-width: 640px) {
+  .VPHero {
+    margin-top: 0px !important;
+  }
+}
+
+/* allow multiple lines in right sidbar */
+.VPDocAsideOutline .outline-link {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  line-height: 1.4;
+  padding: 4px 0;
+}
+
+/* command tagline under each `## <command>` heading */
+.vp-doc .tagline {
+  border-left: 3px solid var(--vp-c-brand-1);
+  padding-left: 16px;
+  color: var(--vp-c-text-2);
+}
