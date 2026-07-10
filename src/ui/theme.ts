@@ -16,7 +16,7 @@ export const MACCHIATO = {
   green: "#a6da95",
   teal: "#8bd5ca",
   sky: "#91d7e3",
-  sapphire: "#7dc4e7",
+  sapphire: "#7dc4e4",
   blue: "#8aadf4",
   lavender: "#b7bdf8",
   text: "#cad3f5",

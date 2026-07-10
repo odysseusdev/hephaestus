@@ -104,7 +104,8 @@ interface VersionProbe {
 function probeVersion(parsed: unknown): VersionProbe {
   const record: Record<string, unknown> =
     typeof parsed === "object" && parsed !== null ? (parsed as Record<string, unknown>) : {};
-  const version: number | undefined = typeof record.version === "number" ? record.version : undefined;
+  const version: number | undefined =
+    typeof record.version === "number" ? record.version : undefined;
   const engineVersion: string =
     typeof record.engineVersion === "string" ? record.engineVersion : "an unknown version";
   return { version, engineVersion };
@@ -210,4 +211,3 @@ export async function writeLockfile(projectRoot: string, lockfile: Lockfile): Pr
   const validated: Lockfile = lockfileSchema.parse(lockfile);
   await writeFileAtomic(lockPath, stringifyYaml(validated));
 }
-

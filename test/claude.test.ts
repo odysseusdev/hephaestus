@@ -32,7 +32,8 @@ const SKILL: CanonicalSkill = {
   contentFiles: [
     {
       filename: "conventions.md",
-      contents: "---\ndescription: TypeScript conventions\n---\n\n# typescript\n\nuse strict mode.\n",
+      contents:
+        "---\ndescription: TypeScript conventions\n---\n\n# typescript\n\nuse strict mode.\n",
     },
   ],
   bundledFiles: [],

@@ -27,9 +27,7 @@ afterEach(async () => {
 
 describe("toProjectPath", () => {
   it("resolves a simple relative POSIX path under the project root", () => {
-    expect(toProjectPath(projectRoot, "docs/plan.md")).toBe(
-      join(projectRoot, "docs", "plan.md"),
-    );
+    expect(toProjectPath(projectRoot, "docs/plan.md")).toBe(join(projectRoot, "docs", "plan.md"));
   });
 
   it("converts forward slashes to the OS-native separator", () => {
@@ -41,9 +39,7 @@ describe("toProjectPath", () => {
   });
 
   it("rejects a `../` escape above the project root", () => {
-    expect(() => toProjectPath(projectRoot, "../../etc/evil")).toThrow(
-      /outside the project root/,
-    );
+    expect(() => toProjectPath(projectRoot, "../../etc/evil")).toThrow(/outside the project root/);
   });
 
   it("rejects a `../` escape that lands exactly one level above the root", () => {

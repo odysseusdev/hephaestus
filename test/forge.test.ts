@@ -259,7 +259,10 @@ describe("runForge", () => {
     noteMock.mockClear();
     (onMigrate as (from: number, to: number) => void)(1, 2);
 
-    expect(noteMock).toHaveBeenCalledWith(expect.stringContaining(LOCKFILE_PATH), "migrating lockfile");
+    expect(noteMock).toHaveBeenCalledWith(
+      expect.stringContaining(LOCKFILE_PATH),
+      "migrating lockfile",
+    );
     const [message] = noteMock.mock.calls[0]!;
     expect(String(message)).toContain("v1");
     expect(String(message)).toContain("v2");
@@ -268,9 +271,7 @@ describe("runForge", () => {
   it("rethrows a corrupt lockfile error when --force is not passed", async () => {
     await writeFile(join(projectRoot, LOCKFILE_PATH), "not: [valid, yaml", "utf8");
 
-    await expect(runForge({ dir: projectRoot, force: false })).rejects.toThrow(
-      /not valid YAML/,
-    );
+    await expect(runForge({ dir: projectRoot, force: false })).rejects.toThrow(/not valid YAML/);
     expect(groupMultiselectMock).not.toHaveBeenCalled();
   });
 
@@ -282,7 +283,9 @@ describe("runForge", () => {
     );
 
     await expect(runForge({ dir: projectRoot, force: true })).rejects.toThrow(
-      new RegExp(`written by hephaestus 9\\.9\\.9.*running ${ENGINE_VERSION.replace(/\./g, "\\.")}`),
+      new RegExp(
+        `written by hephaestus 9\\.9\\.9.*running ${ENGINE_VERSION.replace(/\./g, "\\.")}`,
+      ),
     );
     expect(groupMultiselectMock).not.toHaveBeenCalled();
     // Must not be reported as "corrupt lockfile" like a genuine LockfileError would be.

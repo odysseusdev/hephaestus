@@ -32,9 +32,11 @@
     "access": "public"
   },
   "type": "module",
+  "sideEffects": false,
   "bin": {
     "hephaestus": "./dist/cli.js"
   },
+  "main": "./dist/index.js",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -51,7 +53,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsc --noEmit && tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

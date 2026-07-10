@@ -50,7 +50,11 @@ describe("groupAgentsByCategory", () => {
 describe("agentDescriptionsBlock", () => {
   it("uses the short summary rather than the unbounded description", () => {
     const longDescription = "y".repeat(200);
-    const agent = makeAgent({ name: "Planner", summary: "plans things", description: longDescription });
+    const agent = makeAgent({
+      name: "Planner",
+      summary: "plans things",
+      description: longDescription,
+    });
     const block = agentDescriptionsBlock([agent]);
     expect(block).not.toContain(longDescription);
     expect(block).toContain("plans things");

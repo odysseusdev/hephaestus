@@ -17,7 +17,10 @@ import type { HarnessId } from "./schema.js";
  * re-derive the provisioning selection from a lockfile. agents that no longer
  * exist in canonical content are silently dropped.
  */
-export function selectionFromLock(lockfile: Lockfile, content: CanonicalContent): ProvisionSelection {
+export function selectionFromLock(
+  lockfile: Lockfile,
+  content: CanonicalContent,
+): ProvisionSelection {
   const agentIds: string[] = Object.keys(lockfile.agents).filter((id) => content.agents.has(id));
 
   return {
@@ -38,9 +41,7 @@ export interface ProvisionSelection {
 
 /** derive the ordered, deduplicated skill id list for the given agent ids. */
 function deriveSkillIds(agentIds: string[], content: CanonicalContent): string[] {
-  const skillSet = new Set<string>(
-    agentIds.flatMap((id) => content.agents.get(id)?.skills ?? []),
-  );
+  const skillSet = new Set<string>(agentIds.flatMap((id) => content.agents.get(id)?.skills ?? []));
   return [...content.skills.keys()].filter((id) => skillSet.has(id));
 }
 

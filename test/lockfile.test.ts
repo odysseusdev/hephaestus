@@ -19,10 +19,9 @@ vi.mock("../src/core/lockfile-migrations.js", async (importOriginal) => {
 
 const { readLockfile, LockfileError, LockfileTooNewError, LOCKFILE_VERSION, LOCKFILE_NAME } =
   await import("../src/core/lockfile.js");
-const { applyMigrations: realApplyMigrations } =
-  await vi.importActual<typeof import("../src/core/lockfile-migrations.js")>(
-    "../src/core/lockfile-migrations.js",
-  );
+const { applyMigrations: realApplyMigrations } = await vi.importActual<
+  typeof import("../src/core/lockfile-migrations.js")
+>("../src/core/lockfile-migrations.js");
 const { ENGINE_VERSION } = await import("../src/core/version.js");
 
 /** A minimal, schema-valid v1 lockfile object. */
@@ -99,14 +98,18 @@ describe("readLockfile — on-disk version newer than LOCKFILE_VERSION", () => {
 
     await expect(readLockfile(projectRoot)).rejects.toThrow(LockfileTooNewError);
     await expect(readLockfile(projectRoot)).rejects.toThrow(
-      new RegExp(`written by hephaestus 9\\.9\\.9.*running ${ENGINE_VERSION.replace(/\./g, "\\.")}`),
+      new RegExp(
+        `written by hephaestus 9\\.9\\.9.*running ${ENGINE_VERSION.replace(/\./g, "\\.")}`,
+      ),
     );
   });
 
   it("degrades gracefully to 'an unknown version' when engineVersion is absent", async () => {
     await writeRawLockfile({ version: LOCKFILE_VERSION + 1 });
 
-    await expect(readLockfile(projectRoot)).rejects.toThrow(/written by hephaestus an unknown version/);
+    await expect(readLockfile(projectRoot)).rejects.toThrow(
+      /written by hephaestus an unknown version/,
+    );
   });
 
   it("is NOT an instanceof LockfileError — a sibling type, not a subclass", async () => {
