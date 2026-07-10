@@ -14,7 +14,7 @@
 
 **_forging ai agents fit for the gods._**
 
-define your agents once in plain markdown. hephaestus shapes them for every harness and keeps them tempered.
+write once in markdown. forge for any harness.
 
 [what is hephaestus?](#-what-is-hephaestus) | [install](#-install) | [getting started](#-getting-started) | [your canon](#-your-canon) | [commands](#-commands) | [lockfile](#-lockfile) | [contributing](#-contributing)
 
@@ -147,7 +147,7 @@ agents reference skills by directory slug in their own `skills:` frontmatter —
 
 ### `bind`
 
-_anchor the workshop — bind to a canonical source._
+_anchor the workshop - bind to a canonical source._
 
 set or update the global canonical source. runs interactively if no path is given. config is saved to `~/.config/hephaestus/config.json`.
 
@@ -160,7 +160,7 @@ the path must contain both `agents/` and `skills/` subdirectories. set `HEPHAEST
 
 ### `forge`
 
-_strike the anvil — shape canonical source into provisioned harness files._
+_strike the anvil - shape the source into provisioned files._
 
 interactive provisioning. loads canonical content, then walks you through agent selection, harness selection, and agent output directory. writes provisioned files and a `hephaestus.lock.yaml` lockfile into the project. if no canon directory is configured yet, `forge` runs the bind prompt inline.
 
@@ -172,7 +172,7 @@ hephaestus forge --force         # re-initialise even if a lockfile exists
 
 ### `inventory`
 
-_survey the work — catalogue what has been provisioned._
+_survey the work - catalogue what has been provisioned._
 
 read-only status report. shows provisioned agents (tiers, skills), active harnesses, output directory, and any pending drift.
 
@@ -183,7 +183,7 @@ hephaestus inventory --dir ./app
 
 ### `temper`
 
-_heat, then cool — rework what was forged._
+_heat, then cool - rework what was forged._
 
 re-renders from canonical and reconciles with what is on disk, file by file. see [lockfile](#-lockfile) for how it decides what to write, keep, or flag.
 
@@ -198,7 +198,7 @@ hephaestus temper --dir ./app
 
 ### `quench`
 
-_put out the forge — dissolve the provisioning entirely._
+_put out the forge - dissolve the provisioning entirely._
 
 removes every provisioned file tracked by the lockfile, cleans up empty skill directories, and deletes the lockfile. confirms before deleting. also offers to remove the output directory.
 

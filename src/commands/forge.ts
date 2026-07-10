@@ -43,7 +43,7 @@ export interface ForgeOptions {
 export async function runForge(options: ForgeOptions): Promise<void> {
   const projectRoot: string = resolve(options.dir);
 
-  intro("forge", "strike the anvil — shape canonical source into provisioned harness files.");
+  intro("forge", "strike the anvil - shape the source into provisioned files.");
 
   // forge is fully interactive (agent select, harness select, output dir prompt) with no
   // non-interactive equivalent yet, so fail fast with a clear message rather than hanging.

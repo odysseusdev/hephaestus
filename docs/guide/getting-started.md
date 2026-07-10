@@ -95,7 +95,7 @@ this writes the resolved absolute path to `~/.config/hephaestus/config.json`. ev
 :::
 
 ::: details usage in ci
-set `HEPHAESTUS_CANON_DIR` as an environment variable instead of running `bind`. it takes precedence over the saved config file and needs no interactive step. see [configuration](/reference/configuration#canon-directory-resolution) for the full resolution order.
+set `HEPHAESTUS_CANON_DIR` as an environment variable instead of running `bind`. it takes precedence over the saved config file and needs no interactive step. see [configuration](/reference/configuration#canonical-source-resolution) for the full resolution order.
 :::
 
 ## 4. forge into a project

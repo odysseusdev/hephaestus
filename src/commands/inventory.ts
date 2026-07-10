@@ -29,7 +29,7 @@ export interface InventoryOptions {
 export async function runInventory(options: InventoryOptions): Promise<void> {
   const projectRoot: string = resolve(options.dir);
 
-  intro("inventory", "survey the workshop — catalogue what has been provisioned.");
+  intro("inventory", "survey the work - catalogue what has been provisioned.");
 
   const lockfile: Lockfile | null = await readLockfile(projectRoot, (fromVersion, toVersion) => {
     note(

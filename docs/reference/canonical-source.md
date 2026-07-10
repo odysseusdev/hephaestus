@@ -34,7 +34,7 @@ each agent is a single markdown file at `agents/<id>.md`.
 | `name`           | yes      | lowercase display name.                                                                               |
 | `category`       | no       | slug. groups the agent for easier selection. omitted agents fall under `general`.                     |
 | `summary`        | yes      | 1–80 chars. shown as the hint when `forge`-ing. meant for humans.                                     |
-| `description`    | yes      | 1+ sentence. "does x. use when y.". meant for agents.                                                 |
+| `description`    | yes      | any non-empty string; by convention 1+ sentence, "does x. use when y.". meant for agents.             |
 | `tier`           | yes      | `fast` / `balanced` / `flagship`. maps to a model per harness.                                        |
 | `tools`          | no       | abstract set. `read`, `write`, `edit`, `search`, `execute`, `websearch`, `webfetch` defaults to `[]`. |
 | `skills`         | no       | slugs referencing directories under `skills/`. defaults to `[]`.                                      |

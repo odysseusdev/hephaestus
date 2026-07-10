@@ -33,7 +33,9 @@ CI runners have no interactive terminal and no persisted `~/.config` from a prev
 it also lets a CI job point at a different canon (a fork, a PR-preview branch of your canon repo) without touching the shared global config.
 :::
 
-both resolution paths are validated the same way. the directory must exist and contain both `agents/` and `skills/` subdirectories, or hephaestus fails with a clear "missing `agents/` subdirectory in: `<path>`" style message rather than a generic not-found error.
+both resolution paths only check that the directory itself exists at this point; hephaestus fails with a generic "canonical content directory does not exist" error otherwise.
+
+the full `agents/`/`skills/` subdirectory check (the one that fails fast with "missing `agents/` subdirectory in: `<path>`") only runs when a source is first configured — inside `hephaestus bind` itself, and inline the first time `forge` runs with no source configured yet. once a source is bound, pointing `HEPHAESTUS_CANON_DIR` at a directory that exists but is missing `agents/` or `skills/` won't be caught here; it surfaces later as a less specific "no agents found under `<path>`/agents" error when content is loaded.
 
 ## agent output directory
 

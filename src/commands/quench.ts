@@ -59,7 +59,7 @@ function collectTrackedPaths(lockfile: Lockfile): TrackedPaths {
 export async function runQuench(options: QuenchOptions): Promise<void> {
   const projectRoot = resolve(options.dir);
 
-  intro("quench", "put out the forge — dissolve the provisioning entirely.");
+  intro("quench", "put out the forge - dissolve the provisioning entirely.");
 
   const lockfile: Lockfile | null = await readLockfile(projectRoot);
   if (!lockfile) {

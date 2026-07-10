@@ -63,6 +63,10 @@ writes provisioned files and a `hephaestus.lock.yaml` lockfile into the project.
 if no canon directory is configured yet, `forge` runs the `bind` prompt inline.
 :::
 
+::: warning no non-interactive mode
+`forge` has no flag-driven equivalent of its prompts — it always asks for agent selection, harness selection, and the output directory. it refuses to run at all when stdin isn't a TTY (e.g. in CI). if the project is already provisioned, use `hephaestus temper --strategy <overwrite|cancel|merge>` instead, which is fully non-interactive.
+:::
+
 ### flags
 
 | flag              | default | description                                     |

@@ -107,7 +107,7 @@ export async function runTemper(
 
   intro(
     `temper${options.dryRun ? dim("  dry run") : ""}`,
-    "heat, then cool — rework what was forged.",
+    "heat, then cool - rework what was forged.",
   );
 
   const lockfile = await readLockfile(projectRoot, (fromVersion, toVersion) => {
