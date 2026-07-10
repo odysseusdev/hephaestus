@@ -87,6 +87,25 @@ html {
   }
 }
 
+/* icon left, text right on large screens */
+@media (min-width: 960px) {
+  .VPHero .container {
+    flex-direction: row-reverse;
+    justify-content: center;
+    gap: 100px;
+  }
+
+  /* drop the default -32px nudge and fix the icon width */
+  .VPHero .image {
+    flex-grow: 0;
+    width: 320px;
+  }
+
+  .VPHero .image-container {
+    transform: none;
+  }
+}
+
 /* allow multiple lines in right sidbar */
 .VPDocAsideOutline .outline-link {
   white-space: normal;
