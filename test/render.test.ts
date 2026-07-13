@@ -18,9 +18,7 @@ describe("extractTokenNames", () => {
 
 describe("findUnknownTokens", () => {
   it("accepts the known token set", () => {
-    expect(
-      findUnknownTokens("{{output}} {{skills}}"),
-    ).toEqual([]);
+    expect(findUnknownTokens("{{output}} {{skills}}")).toEqual([]);
   });
 
   it("reports unknown tokens", () => {

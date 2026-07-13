@@ -95,11 +95,7 @@ export class ClaudeHarness implements Harness {
       return `| ${skillId} | ${reference} |`;
     });
 
-    return [
-      "| Skill | Reference |",
-      "|-------|-----------|",
-      ...rows,
-    ].join("\n");
+    return ["| Skill | Reference |", "|-------|-----------|", ...rows].join("\n");
   }
 
   renderAgent(

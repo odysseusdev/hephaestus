@@ -51,7 +51,7 @@ export function assertInteractive(
 
 /** print the themed intro banner with a prominent header and per-command tagline. */
 export function intro(command: string, subtitle: string): void {
-  const header = `  ${theme.fire("󰈸")}  ${bold(theme.accent("hephaestus"))}  ${dim("·")}  ${dim(ENGINE_VERSION)}`;
+  const header = `  ${theme.fire("󰈸")}  ${bold(theme.fire("hephaestus"))}  ${dim("·")}  ${dim(ENGINE_VERSION)}`;
   process.stdout.write(`\n${header}\n\n`);
   clack.intro(bold(theme.text(command)));
   clack.log.message(theme.muted(subtitle));
@@ -66,8 +66,6 @@ export function outro(message: string): void {
 export function note(message: string, title?: string): void {
   clack.note(message, title ? theme.accent(title) : undefined);
 }
-
-export const log = clack.log;
 
 /** multi-select prompt. returns the chosen values. */
 export async function multiselect<T extends string>(

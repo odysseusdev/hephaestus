@@ -1,28 +1,30 @@
 import { resolve } from "node:path";
 
 import { loadConfig } from "../core/config.js";
-import { readFileIfExists, toProjectPath, writeFileAtomic } from "../core/fsops.js";
-import { hashContents } from "../core/hash.js";
+import { toProjectPath, writeFileAtomic } from "../core/fsops.js";
 import { loadCanonical, type CanonicalContent } from "../core/loader.js";
 import { LOCKFILE_NAME, readLockfile, writeLockfile, type Lockfile } from "../core/lockfile.js";
 import {
   buildLockfile,
-  previousLockHash,
   renderAll,
   selectionFromLock,
   type ProvisionSelection,
   type RenderedOutput,
 } from "../core/provision.js";
-import { decideFile, resolveDrift, type DriftStrategy, type SyncDecision } from "../core/sync.js";
+import {
+  decideOutputFile,
+  resolveDrift,
+  type DriftStrategy,
+  type SyncDecision,
+} from "../core/sync.js";
 import { ENGINE_VERSION } from "../core/version.js";
 import { assertInteractive, intro, note, outro, select } from "../ui/prompts.js";
 import { decisionLine, syncSummary, tallySyncDecision, type SyncCounts } from "../ui/report.js";
-import { dim, theme } from "../ui/theme.js";
+import { theme } from "../ui/theme.js";
 
 /** options accepted by the `temper` command. */
 export interface TemperOptions {
   dir: string;
-  dryRun: boolean;
   strategy?: DriftStrategy;
 }
 
@@ -34,6 +36,8 @@ interface FileOutcome {
   write: string | Uint8Array | null;
   /** hash to record in the new lockfile, or undefined to drop the entry. */
   recordHash: string | undefined;
+  /** true when drift was left unresolved (cancel, or merge before markers are removed). */
+  unresolved: boolean;
 }
 
 /** prompt the user to choose a drift resolution strategy for a single file. */
@@ -52,7 +56,7 @@ async function promptStrategy(path: string): Promise<DriftStrategy> {
   );
 }
 
-/** decide and (unless dry-run) apply the sync outcome for one output file. */
+/** decide and apply the sync outcome for one output file. */
 async function processFile(
   output: RenderedOutput,
   file: { path: string; contents: string | Uint8Array; hash: string },
@@ -60,28 +64,31 @@ async function processFile(
   projectRoot: string,
   options: TemperOptions,
 ): Promise<FileOutcome> {
-  const lockHash: string | undefined = previousLockHash(lockfile, output, file.path);
-  const diskContents: Buffer | null = await readFileIfExists(toProjectPath(projectRoot, file.path));
-  const diskHash: string | null = diskContents === null ? null : hashContents(diskContents);
-
-  const decision: SyncDecision = decideFile({ lockHash, diskHash, newHash: file.hash });
+  const { decision, lockHash, diskContents } = await decideOutputFile(
+    output,
+    file,
+    lockfile,
+    projectRoot,
+  );
 
   if (decision === "create" || decision === "update") {
-    return { path: file.path, decision, write: file.contents, recordHash: file.hash };
+    return {
+      path: file.path,
+      decision,
+      write: file.contents,
+      recordHash: file.hash,
+      unresolved: false,
+    };
   }
   if (decision === "skip") {
-    return { path: file.path, decision, write: null, recordHash: file.hash };
+    return { path: file.path, decision, write: null, recordHash: file.hash, unresolved: false };
   }
   if (decision === "keep") {
     // upstream unchanged — preserve the user's edit and existing lock hash.
-    return { path: file.path, decision, write: null, recordHash: lockHash };
+    return { path: file.path, decision, write: null, recordHash: lockHash, unresolved: false };
   }
 
   // decision === "drift"
-  if (options.dryRun) {
-    return { path: file.path, decision, write: null, recordHash: lockHash };
-  }
-
   const strategy: DriftStrategy = options.strategy ?? (await promptStrategy(file.path));
   const resolution = resolveDrift(strategy, diskContents ?? "", file.contents);
   return {
@@ -89,12 +96,13 @@ async function processFile(
     decision,
     write: resolution.write,
     recordHash: resolution.updateLock ? file.hash : lockHash,
+    unresolved: !resolution.updateLock,
   };
 }
 
 /**
  * run the `temper` command: re-render canonical and reconcile with the project
- * per the three-way decision table, honouring `--dry-run` and `--strategy`.
+ * per the three-way decision table, honouring `--strategy`.
  *
  * @param contentOverride - pre-loaded canonical content. when provided,
  *   `loadCanonical` is skipped entirely (useful for testing).
@@ -105,17 +113,23 @@ export async function runTemper(
 ): Promise<void> {
   const projectRoot: string = resolve(options.dir);
 
-  intro(
-    `temper${options.dryRun ? dim("  dry run") : ""}`,
-    "heat, then cool — rework what was forged.",
-  );
+  intro("temper", "heat, then cool - rework what was forged.");
 
-  const lockfile = await readLockfile(projectRoot, (fromVersion, toVersion) => {
-    note(
-      `${theme.accent(LOCKFILE_NAME)} is v${fromVersion}, migrating to v${toVersion}...`,
-      "migrating lockfile",
-    );
-  });
+  const lockfile = await readLockfile(
+    projectRoot,
+    (fromVersion, toVersion) => {
+      note(
+        `${theme.accent(LOCKFILE_NAME)} is v${fromVersion}, hephaestus expects v${toVersion}.\nbacking up to ${theme.accent(`${LOCKFILE_NAME}.bak`)}, then migrating...`,
+        "migrating lockfile",
+      );
+    },
+    (_fromVersion, toVersion) => {
+      note(
+        `${theme.accent(LOCKFILE_NAME)} migrated to v${toVersion}.\nbackup saved: ${theme.accent(`${LOCKFILE_NAME}.bak`)}`,
+        "migration complete",
+      );
+    },
+  );
   if (!lockfile) {
     note(
       `no ${theme.accent(LOCKFILE_NAME)} found. run ${theme.accent("hephaestus forge")} first.`,
@@ -132,6 +146,7 @@ export async function runTemper(
   const counts: SyncCounts = { created: 0, updated: 0, skipped: 0, kept: 0, drifted: 0 };
   const lines: string[] = [];
   const recorded: Map<RenderedOutput, Map<string, string>> = new Map();
+  let unresolvedCount = 0;
 
   for (const output of outputs) {
     const fileHashes: Map<string, string> = new Map();
@@ -141,12 +156,15 @@ export async function runTemper(
       const outcome: FileOutcome = await processFile(output, file, lockfile, projectRoot, options);
 
       tallySyncDecision(counts, outcome.decision);
+      if (outcome.unresolved) {
+        unresolvedCount += 1;
+      }
       if (outcome.decision !== "skip") {
         lines.push(decisionLine(outcome.decision, outcome.path));
       }
 
-      if (outcome.write !== null && !options.dryRun) {
-        await writeFileAtomic(toProjectPath(projectRoot, outcome.path), outcome.write);
+      if (outcome.write !== null) {
+        await writeFileAtomic(await toProjectPath(projectRoot, outcome.path), outcome.write);
       }
       if (outcome.recordHash !== undefined) {
         fileHashes.set(outcome.path, outcome.recordHash);
@@ -155,26 +173,28 @@ export async function runTemper(
   }
 
   if (lines.length > 0) {
-    note(lines.join("\n"), options.dryRun ? "planned changes" : "changes");
+    note(lines.join("\n"), "changes");
   }
 
-  if (!options.dryRun) {
-    const nextLockfile: Lockfile = buildLockfile(
-      content,
-      outputs,
-      selection,
-      ENGINE_VERSION,
-      recorded,
-    );
-    await writeLockfile(projectRoot, nextLockfile);
-  }
+  const nextLockfile: Lockfile = buildLockfile(
+    content,
+    outputs,
+    selection,
+    ENGINE_VERSION,
+    recorded,
+  );
+  await writeLockfile(projectRoot, nextLockfile);
 
   note(syncSummary(counts), "summary");
+  // unresolved drift (cancel, or merge before markers are removed) means the
+  // project is still out of sync — fail the run so ci can gate on it. drift
+  // resolved via overwrite advances the lock and isn't "unresolved".
+  if (unresolvedCount > 0) {
+    process.exitCode = 1;
+  }
   outro(
-    options.dryRun
-      ? "dry run complete. no files were written."
-      : counts.drifted > 0
-        ? "temper complete. resolve any remaining drift and re-run temper."
-        : "temper complete.",
+    unresolvedCount > 0
+      ? "temper complete. resolve any remaining drift and re-run temper."
+      : "temper complete.",
   );
 }

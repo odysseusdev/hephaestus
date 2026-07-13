@@ -49,7 +49,6 @@ const slugSchema = z
     "must be lowercase letters, numbers and single hyphens (e.g. `my-agent`)",
   );
 
-
 /**
  * per-harness concrete model overrides that bypass the tier map for one harness.
  * unknown harness keys are silently ignored so independently-maintained canon

@@ -7,7 +7,13 @@ import tseslint from "typescript-eslint";
  */
 export default tseslint.config(
   {
-    ignores: ["dist/**", "node_modules/**", "content/**"],
+    ignores: [
+      "dist/**",
+      "node_modules/**",
+      "content/**",
+      "docs/.vitepress/cache/**",
+      "docs/.vitepress/dist/**",
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
@@ -17,10 +23,7 @@ export default tseslint.config(
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
-      "@typescript-eslint/explicit-function-return-type": [
-        "error",
-        { allowExpressions: true },
-      ],
+      "@typescript-eslint/explicit-function-return-type": ["error", { allowExpressions: true }],
     },
   },
 );

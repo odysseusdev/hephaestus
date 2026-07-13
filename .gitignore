@@ -5,6 +5,10 @@ node_modules
 dist
 *.tsbuildinfo
 
+# docs site build output
+docs/.vitepress/cache
+docs/.vitepress/dist
+
 # caches
 coverage
 .eslintcache

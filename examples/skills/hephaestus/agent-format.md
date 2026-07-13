@@ -50,10 +50,10 @@ every agent body must contain these five sections, in this exact order — do no
 
 ## known template tokens
 
-| token        | expands to                                                                                                                                                                                                 |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| token        | expands to                                                                                                                                                                                                     |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `{{output}}` | the configured output directory for handoffs and other artifacts rendered as a project-relative path. resolve it against the actual project root at runtime — see the `agent-output` skill's resolution rules. |
-| `{{skills}}` | markdown table of links to each referenced skill's content files.                                                                                                                                          |
+| `{{skills}}` | markdown table of links to each referenced skill's content files.                                                                                                                                              |
 
 unknown tokens pass through unchanged at render time — only `{{output}}` and `{{skills}}` are expanded.
 

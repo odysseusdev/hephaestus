@@ -1,7 +1,6 @@
 import { mkdtemp, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -32,19 +31,9 @@ vi.mock("../src/ui/prompts.js", async (importOriginal) => {
   };
 });
 
-// `runForge` writes to the *real* global config path on the first-run flow.
-// Mock it exactly like bind.test.ts does, so tests never touch the
-// developer's actual global config.
-const writeGlobalConfigMock = vi.hoisted(() => vi.fn(async () => undefined));
-
-vi.mock("../src/core/globalconfig.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../src/core/globalconfig.js")>();
-  return { ...actual, writeGlobalConfig: writeGlobalConfigMock };
-});
-
-// Capture the `onMigrate` callback `runForge` passes to `readLockfile`, while
-// still delegating to the real implementation — proves the wiring without
-// needing a real registered migration to exist yet.
+// Capture the `onMigrateStart`/`onMigrateComplete` callbacks `runForge` passes
+// to `readLockfile`, while still delegating to the real implementation —
+// proves the wiring without needing a real registered migration to exist yet.
 const readLockfileArgsSpy = vi.hoisted(() => vi.fn());
 
 vi.mock("../src/core/lockfile.js", async (importOriginal) => {
@@ -53,18 +42,19 @@ vi.mock("../src/core/lockfile.js", async (importOriginal) => {
     ...actual,
     readLockfile: (async (
       projectRoot: string,
-      onMigrate?: (fromVersion: number, toVersion: number) => void,
+      onMigrateStart?: (fromVersion: number, toVersion: number) => void,
+      onMigrateComplete?: (fromVersion: number, toVersion: number) => void,
     ) => {
-      readLockfileArgsSpy(projectRoot, onMigrate);
-      return actual.readLockfile(projectRoot, onMigrate);
+      readLockfileArgsSpy(projectRoot, onMigrateStart, onMigrateComplete);
+      return actual.readLockfile(projectRoot, onMigrateStart, onMigrateComplete);
     }) as typeof actual.readLockfile,
   };
 });
 
 // `loadConfig` normally succeeds immediately in this suite because
 // vitest.config.ts sets HEPHAESTUS_CANON_DIR to the bundled examples/ dir.
-// Mock it so the "no canon directory configured" first-run flow can still be
-// exercised on demand via `mockImplementationOnce`.
+// Mock it so an `EngineConfigNotFoundError` (or any other loadConfig error)
+// can still be exercised on demand via `mockImplementationOnce`.
 const loadConfigMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../src/core/config.js", async (importOriginal) => {
@@ -79,9 +69,6 @@ const { EngineConfigNotFoundError, loadConfig: realLoadConfig } =
   await vi.importActual<typeof import("../src/core/config.js")>("../src/core/config.js");
 const { LOCKFILE_VERSION } = await import("../src/core/lockfile.js");
 const { ENGINE_VERSION } = await import("../src/core/version.js");
-
-const rootDir: string = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const EXAMPLES_DIR: string = resolve(rootDir, "examples");
 
 const AGENT_FILE = ".claude/agents/agent-creator.md";
 const LOCKFILE_PATH = "hephaestus.lock.yaml";
@@ -100,12 +87,10 @@ beforeEach(async () => {
     noteMock,
     outroMock,
     introMock,
-    writeGlobalConfigMock,
     readLockfileArgsSpy,
   ]) {
     mock.mockReset();
   }
-  writeGlobalConfigMock.mockResolvedValue(undefined);
   assertInteractiveMock.mockImplementation(() => undefined);
   loadConfigMock.mockImplementation(realLoadConfig);
 });
@@ -144,7 +129,7 @@ describe("runForge", () => {
     expect(groupMultiselectMock).not.toHaveBeenCalled();
   });
 
-  it("rethrows an unrelated loadConfig error instead of treating it as first-run setup", async () => {
+  it("rethrows an unrelated loadConfig error", async () => {
     loadConfigMock.mockImplementationOnce(() => {
       throw new Error("canonical content directory does not exist: /nope");
     });
@@ -153,35 +138,17 @@ describe("runForge", () => {
       /canonical content directory does not exist/,
     );
     expect(textMock).not.toHaveBeenCalled();
-    expect(writeGlobalConfigMock).not.toHaveBeenCalled();
   });
 
-  it("runs the first-run setup flow, saves the canon dir, then provisions the selected agent", async () => {
+  it("lets EngineConfigNotFoundError propagate directly instead of prompting for a canon dir", async () => {
     loadConfigMock.mockImplementationOnce(() => {
       throw new EngineConfigNotFoundError();
     });
-    textMock.mockResolvedValueOnce(EXAMPLES_DIR); // canon dir prompt
-    mockStandardSelection(); // agent/harness/output-dir prompts
-    confirmMock.mockResolvedValueOnce(true); // final write confirmation
 
-    await runForge({ dir: projectRoot, force: false });
-
-    expect(writeGlobalConfigMock).toHaveBeenCalledWith({ canonDir: EXAMPLES_DIR });
-    expect(await exists(AGENT_FILE)).toBe(true);
-    expect(await exists(LOCKFILE_PATH)).toBe(true);
-  });
-
-  it("reports an invalid canon dir during first-run setup and cancels without writing config", async () => {
-    loadConfigMock.mockImplementationOnce(() => {
-      throw new EngineConfigNotFoundError();
-    });
-    const badDir: string = join(tmpdir(), "heph-does-not-exist-xyz");
-    textMock.mockResolvedValueOnce(badDir);
-
-    await runForge({ dir: projectRoot, force: false });
-
-    expect(writeGlobalConfigMock).not.toHaveBeenCalled();
-    expect(outroMock).toHaveBeenCalledWith(expect.stringContaining("cancelled"));
+    await expect(runForge({ dir: projectRoot, force: false })).rejects.toThrow(
+      /run `hephaestus bind` to set one up/,
+    );
+    expect(textMock).not.toHaveBeenCalled();
     expect(groupMultiselectMock).not.toHaveBeenCalled();
   });
 
@@ -246,30 +213,44 @@ describe("runForge", () => {
     expect(await exists(AGENT_FILE)).toBe(true);
   });
 
-  it("wires an onMigrate callback to readLockfile that prints a themed migration note", async () => {
+  it("wires onMigrateStart/onMigrateComplete callbacks to readLockfile that print themed migration notes", async () => {
     mockStandardSelection();
     confirmMock.mockResolvedValueOnce(true);
 
     await runForge({ dir: projectRoot, force: false });
 
     expect(readLockfileArgsSpy).toHaveBeenCalledTimes(1);
-    const [, onMigrate] = readLockfileArgsSpy.mock.calls[0]!;
-    expect(typeof onMigrate).toBe("function");
+    const [, onMigrateStart, onMigrateComplete] = readLockfileArgsSpy.mock.calls[0]!;
+    expect(typeof onMigrateStart).toBe("function");
+    expect(typeof onMigrateComplete).toBe("function");
 
     noteMock.mockClear();
-    (onMigrate as (from: number, to: number) => void)(1, 2);
+    (onMigrateStart as (from: number, to: number) => void)(1, 2);
 
-    expect(noteMock).toHaveBeenCalledWith(expect.stringContaining(LOCKFILE_PATH), "migrating lockfile");
-    const [message] = noteMock.mock.calls[0]!;
-    expect(String(message)).toContain("v1");
-    expect(String(message)).toContain("v2");
+    expect(noteMock).toHaveBeenCalledWith(
+      expect.stringContaining(LOCKFILE_PATH),
+      "migrating lockfile",
+    );
+    const [startMessage] = noteMock.mock.calls[0]!;
+    expect(String(startMessage)).toContain("v1");
+    expect(String(startMessage)).toContain("v2");
+
+    noteMock.mockClear();
+    (onMigrateComplete as (from: number, to: number) => void)(1, 2);
+
+    expect(noteMock).toHaveBeenCalledWith(
+      expect.stringContaining(LOCKFILE_PATH),
+      "migration complete",
+    );
+    const [completeMessage] = noteMock.mock.calls[0]!;
+    expect(String(completeMessage)).toContain("v2");
   });
 
-  it("rethrows a corrupt lockfile error when --force is not passed", async () => {
+  it("rethrows a corrupt lockfile error with a --force recovery hint when --force is not passed", async () => {
     await writeFile(join(projectRoot, LOCKFILE_PATH), "not: [valid, yaml", "utf8");
 
     await expect(runForge({ dir: projectRoot, force: false })).rejects.toThrow(
-      /not valid YAML/,
+      /not valid YAML[\s\S]*re-run with --force to re-initialise from scratch\./,
     );
     expect(groupMultiselectMock).not.toHaveBeenCalled();
   });
@@ -282,7 +263,9 @@ describe("runForge", () => {
     );
 
     await expect(runForge({ dir: projectRoot, force: true })).rejects.toThrow(
-      new RegExp(`written by hephaestus 9\\.9\\.9.*running ${ENGINE_VERSION.replace(/\./g, "\\.")}`),
+      new RegExp(
+        `written by hephaestus 9\\.9\\.9.*running ${ENGINE_VERSION.replace(/\./g, "\\.")}`,
+      ),
     );
     expect(groupMultiselectMock).not.toHaveBeenCalled();
     // Must not be reported as "corrupt lockfile" like a genuine LockfileError would be.
@@ -299,6 +282,10 @@ describe("runForge", () => {
     expect(outroMock).toHaveBeenCalledWith(expect.stringContaining("cancelled"));
     expect(await exists(AGENT_FILE)).toBe(false);
     expect(await exists(LOCKFILE_PATH)).toBe(false);
+    // the final write confirmation must default to false, like every other
+    // impactful confirmation prompt in the codebase.
+    const [, defaultValue] = confirmMock.mock.calls.at(-1)!;
+    expect(defaultValue).toBe(false);
   });
 
   it("writes provisioned files, the output dir, and the lockfile on a full happy path", async () => {

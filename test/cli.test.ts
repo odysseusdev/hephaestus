@@ -8,6 +8,8 @@ import { promisify } from "node:util";
 
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { ProvisionSelection } from "../src/core/provision.js";
+
 // Unit-level tests below import `src/cli.ts` directly to exercise command
 // dispatch, `guard`, and `printError` for coverage of the real TypeScript
 // source — something the subprocess smoke tests above can't do, since a
@@ -30,6 +32,35 @@ vi.mock("../src/commands/quench.js", () => ({ runQuench: runQuenchMock }));
 // guarded to only auto-run when the module is the process entry point, which
 // it isn't when merely `import`-ed by a test.
 const { buildProgram, guard, main, parseStrategy, printError } = await import("../src/cli.js");
+
+// Real (unmocked) core modules, used only to build a provisioned project
+// fixture on disk ahead of a `quench` subprocess run — the fixture is built
+// in-process against the bundled examples/ canonical source, not via the CLI
+// itself (which would need its own interactive prompts to provision).
+const { loadConfig } = await import("../src/core/config.js");
+const { loadCanonical } = await import("../src/core/loader.js");
+const { buildLockfile, renderAll } = await import("../src/core/provision.js");
+const { writeLockfile } = await import("../src/core/lockfile.js");
+const { ensureOutputDir, writeOutputs } = await import("../src/core/writer.js");
+const { ENGINE_VERSION: engineVersionForFixture } = await import("../src/core/version.js");
+
+/** Provision every example agent/skill for the `claude` harness into `projectRoot`. */
+async function provisionFixture(projectRoot: string): Promise<void> {
+  const config = loadConfig();
+  const content = await loadCanonical(config);
+  const selection: ProvisionSelection = {
+    agentIds: [...content.agents.keys()],
+    harnesses: ["claude"],
+    outputDir: "docs",
+  };
+  const outputs = renderAll(content, selection);
+  await writeOutputs(projectRoot, outputs);
+  await ensureOutputDir(projectRoot, selection.outputDir);
+  await writeLockfile(
+    projectRoot,
+    buildLockfile(content, outputs, selection, engineVersionForFixture),
+  );
+}
 
 const execFileAsync = promisify(execFile);
 
@@ -129,6 +160,34 @@ describe("dist/cli.js smoke test", () => {
       expect(exitCode).not.toBe(0);
       expect(stderr).toContain("interactive terminal");
     });
+
+    describe("`quench` on a provisioned project", () => {
+      let provisionedDir: string;
+
+      beforeAll(async () => {
+        provisionedDir = await mkdtemp(join(tmpdir(), "heph-cli-smoke-quench-"));
+        await provisionFixture(provisionedDir);
+      });
+
+      afterAll(async () => {
+        await rm(provisionedDir, { recursive: true, force: true });
+      });
+
+      it("without --force fails fast with a clear message on closed stdin instead of hanging", async () => {
+        const { stderr, exitCode } = await runCli(["quench", "--dir", provisionedDir]);
+
+        expect(exitCode).not.toBe(0);
+        expect(stderr).toContain("interactive terminal");
+        expect(stderr).not.toMatch(/at .*\(.*:\d+:\d+\)/);
+      });
+
+      it("--force needs no TTY: exits 0 and removes the provisioned files", async () => {
+        const { exitCode } = await runCli(["quench", "--dir", provisionedDir, "--force"]);
+
+        expect(exitCode).toBe(0);
+        expect(existsSync(join(provisionedDir, "hephaestus.lock.yaml"))).toBe(false);
+      });
+    });
   });
 });
 
@@ -155,14 +214,19 @@ describe("buildProgram (direct import, mocked command modules)", () => {
     }
   });
 
-  it("dispatches `bind <path>` to runBind with the given path", async () => {
+  it("dispatches `bind <path>` to runBind with the given path and defaulted --force", async () => {
     await buildProgram().parseAsync(["node", "hephaestus", "bind", "/tmp/my-canon"]);
-    expect(runBindMock).toHaveBeenCalledWith({ path: "/tmp/my-canon" });
+    expect(runBindMock).toHaveBeenCalledWith({ path: "/tmp/my-canon", force: false });
   });
 
   it("dispatches `bind` with no path as undefined", async () => {
     await buildProgram().parseAsync(["node", "hephaestus", "bind"]);
-    expect(runBindMock).toHaveBeenCalledWith({ path: undefined });
+    expect(runBindMock).toHaveBeenCalledWith({ path: undefined, force: false });
+  });
+
+  it("dispatches `bind <path> --force` with force parsed", async () => {
+    await buildProgram().parseAsync(["node", "hephaestus", "bind", "/tmp/my-canon", "--force"]);
+    expect(runBindMock).toHaveBeenCalledWith({ path: "/tmp/my-canon", force: true });
   });
 
   it("dispatches `forge` with defaulted --dir/--force when omitted", async () => {
@@ -182,20 +246,18 @@ describe("buildProgram (direct import, mocked command modules)", () => {
       "temper",
       "--dir",
       "proj",
-      "--dry-run",
       "--strategy",
       "overwrite",
     ]);
     expect(runTemperMock).toHaveBeenCalledWith({
       dir: "proj",
-      dryRun: true,
       strategy: "overwrite",
     });
   });
 
   it("dispatches `temper` with strategy undefined when not passed", async () => {
     await buildProgram().parseAsync(["node", "hephaestus", "temper"]);
-    expect(runTemperMock).toHaveBeenCalledWith({ dir: ".", dryRun: false, strategy: undefined });
+    expect(runTemperMock).toHaveBeenCalledWith({ dir: ".", strategy: undefined });
   });
 
   it("dispatches `inventory --dir <dir>` to runInventory", async () => {
@@ -203,9 +265,14 @@ describe("buildProgram (direct import, mocked command modules)", () => {
     expect(runInventoryMock).toHaveBeenCalledWith({ dir: "proj" });
   });
 
-  it("dispatches `quench` with the default directory", async () => {
+  it("dispatches `quench` with the default directory and defaulted --force", async () => {
     await buildProgram().parseAsync(["node", "hephaestus", "quench"]);
-    expect(runQuenchMock).toHaveBeenCalledWith({ dir: "." });
+    expect(runQuenchMock).toHaveBeenCalledWith({ dir: ".", force: false });
+  });
+
+  it("dispatches `quench --force` with force parsed", async () => {
+    await buildProgram().parseAsync(["node", "hephaestus", "quench", "--force"]);
+    expect(runQuenchMock).toHaveBeenCalledWith({ dir: ".", force: true });
   });
 
   it("renders help text through every configured (Catppuccin-themed) style formatter", () => {
@@ -244,7 +311,7 @@ describe("main", () => {
 
     await main();
 
-    expect(runQuenchMock).toHaveBeenCalledWith({ dir: "proj" });
+    expect(runQuenchMock).toHaveBeenCalledWith({ dir: "proj", force: false });
     expect(process.exitCode).toBeUndefined();
   });
 });

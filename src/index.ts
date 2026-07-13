@@ -49,7 +49,11 @@ export {
   type Lockfile,
   type LockfileMigrationNotice,
 } from "./core/lockfile.js";
-export { LOCKFILE_MIGRATIONS, applyMigrations, type LockfileMigration } from "./core/lockfile-migrations.js";
+export {
+  LOCKFILE_MIGRATIONS,
+  applyMigrations,
+  type LockfileMigration,
+} from "./core/lockfile-migrations.js";
 export { hashContents, rollupHash } from "./core/hash.js";
 export { writeOutputs, ensureOutputDir } from "./core/writer.js";
 export {

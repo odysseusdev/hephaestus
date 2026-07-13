@@ -1,18 +1,15 @@
 import { resolve } from "node:path";
 
 import { loadConfig } from "../core/config.js";
-import { readFileIfExists, toProjectPath } from "../core/fsops.js";
-import { hashContents } from "../core/hash.js";
 import { loadCanonical, type CanonicalContent } from "../core/loader.js";
 import { LOCKFILE_NAME, readLockfile, type Lockfile } from "../core/lockfile.js";
 import {
-  previousLockHash,
   renderAll,
   selectionFromLock,
   type ProvisionSelection,
   type RenderedOutput,
 } from "../core/provision.js";
-import { decideFile, type SyncDecision } from "../core/sync.js";
+import { decideOutputFile } from "../core/sync.js";
 import { intro, note, outro } from "../ui/prompts.js";
 import { decisionLine, syncSummary, tallySyncDecision, type SyncCounts } from "../ui/report.js";
 import { bold, theme } from "../ui/theme.js";
@@ -29,16 +26,29 @@ export interface InventoryOptions {
 export async function runInventory(options: InventoryOptions): Promise<void> {
   const projectRoot: string = resolve(options.dir);
 
-  intro("inventory", "survey the workshop — catalogue what has been provisioned.");
+  intro("inventory", "survey the work - catalogue what has been provisioned.");
 
-  const lockfile: Lockfile | null = await readLockfile(projectRoot, (fromVersion, toVersion) => {
-    note(
-      `${theme.accent(LOCKFILE_NAME)} is v${fromVersion}, migrating to v${toVersion}...`,
-      "migrating lockfile",
-    );
-  });
+  const lockfile: Lockfile | null = await readLockfile(
+    projectRoot,
+    (fromVersion, toVersion) => {
+      note(
+        `${theme.accent(LOCKFILE_NAME)} is v${fromVersion}, hephaestus expects v${toVersion}.\nbacking up to ${theme.accent(`${LOCKFILE_NAME}.bak`)}, then migrating...`,
+        "migrating lockfile",
+      );
+    },
+    (_fromVersion, toVersion) => {
+      note(
+        `${theme.accent(LOCKFILE_NAME)} migrated to v${toVersion}.\nbackup saved: ${theme.accent(`${LOCKFILE_NAME}.bak`)}`,
+        "migration complete",
+      );
+    },
+  );
   if (!lockfile) {
-    outro("not yet provisioned in this directory. run hephaestus forge.");
+    note(
+      `no ${theme.accent(LOCKFILE_NAME)} found. run ${theme.accent("hephaestus forge")} first.`,
+      "not provisioned",
+    );
+    outro("nothing to show.");
     return;
   }
 
@@ -66,12 +76,7 @@ export async function runInventory(options: InventoryOptions): Promise<void> {
 
   for (const output of outputs) {
     for (const file of output.files) {
-      const lockHash: string | undefined = previousLockHash(lockfile, output, file.path);
-      const diskContents: Buffer | null = await readFileIfExists(
-        toProjectPath(projectRoot, file.path),
-      );
-      const diskHash: string | null = diskContents === null ? null : hashContents(diskContents);
-      const decision: SyncDecision = decideFile({ lockHash, diskHash, newHash: file.hash });
+      const { decision } = await decideOutputFile(output, file, lockfile, projectRoot);
 
       tallySyncDecision(counts, decision);
       if (decision !== "skip") {
@@ -82,6 +87,9 @@ export async function runInventory(options: InventoryOptions): Promise<void> {
 
   if (changeLines.length > 0) {
     note(changeLines.join("\n"), "pending (run temper)");
+    // read-only: any pending change means the project is out of sync with
+    // canonical — fail the run so ci can gate on it.
+    process.exitCode = 1;
   }
   note(syncSummary(counts), "status");
   outro("read-only. run hephaestus temper to apply pending changes.");

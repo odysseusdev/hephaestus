@@ -1,6 +1,6 @@
-import { mkdir, mkdtemp, rm, stat } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, stat, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { basename, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -26,40 +26,78 @@ afterEach(async () => {
 });
 
 describe("toProjectPath", () => {
-  it("resolves a simple relative POSIX path under the project root", () => {
-    expect(toProjectPath(projectRoot, "docs/plan.md")).toBe(
+  it("resolves a simple relative POSIX path under the project root", async () => {
+    expect(await toProjectPath(projectRoot, "docs/plan.md")).toBe(
       join(projectRoot, "docs", "plan.md"),
     );
   });
 
-  it("converts forward slashes to the OS-native separator", () => {
-    expect(toProjectPath(projectRoot, "a/b/c.md")).toBe(join(projectRoot, "a", "b", "c.md"));
+  it("converts forward slashes to the OS-native separator", async () => {
+    expect(await toProjectPath(projectRoot, "a/b/c.md")).toBe(join(projectRoot, "a", "b", "c.md"));
   });
 
-  it("allows the project root itself", () => {
-    expect(toProjectPath(projectRoot, ".")).toBe(projectRoot);
+  it("allows the project root itself", async () => {
+    expect(await toProjectPath(projectRoot, ".")).toBe(projectRoot);
   });
 
-  it("rejects a `../` escape above the project root", () => {
-    expect(() => toProjectPath(projectRoot, "../../etc/evil")).toThrow(
+  it("rejects a `../` escape above the project root", async () => {
+    await expect(toProjectPath(projectRoot, "../../etc/evil")).rejects.toThrow(
       /outside the project root/,
     );
   });
 
-  it("rejects a `../` escape that lands exactly one level above the root", () => {
-    expect(() => toProjectPath(projectRoot, "..")).toThrow(/outside the project root/);
+  it("rejects a `../` escape that lands exactly one level above the root", async () => {
+    await expect(toProjectPath(projectRoot, "..")).rejects.toThrow(/outside the project root/);
   });
 
-  it("rejects an absolute path passed as the relative path", () => {
-    expect(() => toProjectPath(projectRoot, "/etc/evil")).toThrow(/outside the project root/);
+  it("rejects an absolute path passed as the relative path", async () => {
+    await expect(toProjectPath(projectRoot, "/etc/evil")).rejects.toThrow(
+      /outside the project root/,
+    );
   });
 
-  it("rejects a relative escape to a sibling directory sharing a name prefix", () => {
+  it("rejects a relative escape to a sibling directory sharing a name prefix", async () => {
     // A naive `startsWith(root)` check (without appending the path separator)
     // would wrongly treat "<root>-evil" as being inside "<root>" since the
     // string itself is a prefix match.
     const escapePath = `../${basename(projectRoot)}-evil`;
-    expect(() => toProjectPath(projectRoot, escapePath)).toThrow(/outside the project root/);
+    await expect(toProjectPath(projectRoot, escapePath)).rejects.toThrow(
+      /outside the project root/,
+    );
+  });
+
+  describe("symlink ancestors", () => {
+    let attackerRoot: string;
+
+    beforeEach(async () => {
+      attackerRoot = await mkdtemp(join(tmpdir(), "heph-fsops-attacker-"));
+    });
+
+    afterEach(async () => {
+      await rm(attackerRoot, { recursive: true, force: true });
+    });
+
+    it("rejects a path through a symlink whose real target escapes the project root", async () => {
+      const linkPath = join(projectRoot, ".claude", "skills");
+      await mkdir(dirname(linkPath), { recursive: true });
+      await symlink(attackerRoot, linkPath, "dir");
+
+      await expect(toProjectPath(projectRoot, ".claude/skills/whatever.md")).rejects.toThrow(
+        /outside the project root/,
+      );
+    });
+
+    it("allows a symlink whose real target still resolves inside the project root", async () => {
+      const realDir = join(projectRoot, "real-skills");
+      await mkdir(realDir, { recursive: true });
+      const linkPath = join(projectRoot, ".claude", "skills");
+      await mkdir(dirname(linkPath), { recursive: true });
+      await symlink(realDir, linkPath, "dir");
+
+      expect(await toProjectPath(projectRoot, ".claude/skills/whatever.md")).toBe(
+        join(linkPath, "whatever.md"),
+      );
+    });
   });
 });
 
@@ -133,6 +171,16 @@ describe("tryRemoveEmptyDir", () => {
 
   it("silently ignores a directory that does not exist", async () => {
     await expect(tryRemoveEmptyDir(join(projectRoot, "missing"))).resolves.toBeUndefined();
+  });
+
+  it("rethrows an error that is neither ENOENT nor ENOTEMPTY", async () => {
+    // Passing a *file* path makes `rmdir` fail with ENOTDIR — a reliable,
+    // permission-independent way to trigger a code other than the two this
+    // function is documented to swallow.
+    const filePath = join(projectRoot, "not-a-dir.txt");
+    await writeFileAtomic(filePath, "x");
+
+    await expect(tryRemoveEmptyDir(filePath)).rejects.toThrow(/Failed to remove/);
   });
 });
 

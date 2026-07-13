@@ -36,12 +36,12 @@ items discovered but deferred. blockers if status is `blocked`.
 
 add role-specific sections after `follow-ups` when they add value. these are conventions, not requirements:
 
-| role | suggested section | content |
-|------|------------------|---------|
-| planner | `## task list` | ordered tasks, each naming the files it affects |
-| developer | `## checklist` | items a reviewer should verify |
-| reviewer | `## findings` | categorised findings — see findings format below |
-| creator role (agent/skill author, scaffolder, etc.) | `## created` | file path and full frontmatter written |
+| role                                                | suggested section | content                                          |
+| --------------------------------------------------- | ----------------- | ------------------------------------------------ |
+| planner                                             | `## task list`    | ordered tasks, each naming the files it affects  |
+| developer                                           | `## checklist`    | items a reviewer should verify                   |
+| reviewer                                            | `## findings`     | categorised findings — see findings format below |
+| creator role (agent/skill author, scaffolder, etc.) | `## created`      | file path and full frontmatter written           |
 
 ## field rules
 

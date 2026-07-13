@@ -1,7 +1,6 @@
 import { resolve } from "node:path";
 
-import { EngineConfigNotFoundError, loadConfig } from "../core/config.js";
-import { expandHome, validateCanonDir, writeGlobalConfig } from "../core/globalconfig.js";
+import { loadConfig } from "../core/config.js";
 import { loadCanonical, type CanonicalContent } from "../core/loader.js";
 import { LockfileError, readLockfile, writeLockfile, LOCKFILE_NAME } from "../core/lockfile.js";
 import {
@@ -37,13 +36,12 @@ export interface ForgeOptions {
 
 /**
  * run the interactive `forge` command: select agents/harnesses/output dir,
- * preview, then write provisioned files and lockfile. handles the first-run
- * case by prompting for a canon directory when none is configured.
+ * preview, then write provisioned files and lockfile.
  */
 export async function runForge(options: ForgeOptions): Promise<void> {
   const projectRoot: string = resolve(options.dir);
 
-  intro("forge", "strike the anvil — shape canonical source into provisioned harness files.");
+  intro("forge", "strike the anvil - shape the source into provisioned files.");
 
   // forge is fully interactive (agent select, harness select, output dir prompt) with no
   // non-interactive equivalent yet, so fail fast with a clear message rather than hanging.
@@ -51,45 +49,33 @@ export async function runForge(options: ForgeOptions): Promise<void> {
     "forge has no non-interactive mode yet; if this project is already provisioned, run `hephaestus temper --strategy <overwrite|cancel|merge>` instead.",
   );
 
-  // resolve config, running the first-time setup flow if no canon dir is configured.
-  let config: EngineConfig;
-  try {
-    config = loadConfig();
-  } catch (error: unknown) {
-    if (!(error instanceof EngineConfigNotFoundError)) throw error;
-
-    note(
-      [
-        "no canon directory configured.",
-        `enter the path now, or run ${theme.accent("hephaestus bind")} separately.`,
-      ].join("\n"),
-      "first run",
-    );
-    const raw: string = await text("path to your canonical content directory?", "~/my-agents");
-    const canonDir: string = resolve(expandHome(raw));
-    const validationError: string | null = validateCanonDir(canonDir);
-    if (validationError) {
-      note(theme.danger(validationError), "invalid path");
-      outro("cancelled. run hephaestus bind to configure your canon directory.");
-      return;
-    }
-    await writeGlobalConfig({ canonDir });
-    note(`tethered to ${theme.accent(canonDir)}`, "canon dir saved");
-    config = loadConfig();
-  }
+  const config: EngineConfig = loadConfig();
 
   const content: CanonicalContent = await loadCanonical(config);
 
   let existing;
   try {
-    existing = await readLockfile(projectRoot, (fromVersion, toVersion) => {
-      note(
-        `${theme.accent(LOCKFILE_NAME)} is v${fromVersion}, migrating to v${toVersion}...`,
-        "migrating lockfile",
-      );
-    });
+    existing = await readLockfile(
+      projectRoot,
+      (fromVersion, toVersion) => {
+        note(
+          `${theme.accent(LOCKFILE_NAME)} is v${fromVersion}, hephaestus expects v${toVersion}.\nbacking up to ${theme.accent(`${LOCKFILE_NAME}.bak`)}, then migrating...`,
+          "migrating lockfile",
+        );
+      },
+      (_fromVersion, toVersion) => {
+        note(
+          `${theme.accent(LOCKFILE_NAME)} migrated to v${toVersion}.\nbackup saved: ${theme.accent(`${LOCKFILE_NAME}.bak`)}`,
+          "migration complete",
+        );
+      },
+    );
   } catch (error: unknown) {
-    if (!(error instanceof LockfileError) || !options.force) {
+    if (!(error instanceof LockfileError)) {
+      throw error;
+    }
+    if (!options.force) {
+      error.message += "\nre-run with --force to re-initialise from scratch.";
       throw error;
     }
     // a corrupt/unparseable lockfile is not a reason to block `--force`, whose
@@ -157,6 +143,7 @@ export async function runForge(options: ForgeOptions): Promise<void> {
 
   const proceed: boolean = await confirm(
     `write ${theme.accent(String(fileCount))} file(s) and create ${theme.accent(`${outputDir}/`)}?`,
+    false,
   );
   if (!proceed) {
     outro("cancelled. nothing was written.");

@@ -45,7 +45,7 @@ export function buildProgram(): Command {
 
   const helpBanner = [
     "",
-    `  ${theme.fire("󰈸")}  ${bold(theme.accent("hephaestus"))}  ${dim("·")}  ${dim(ENGINE_VERSION)}`,
+    `  ${theme.fire("󰈸")}  ${bold(theme.fire("hephaestus"))}  ${dim("·")}  ${dim(ENGINE_VERSION)}`,
     "",
   ].join("\n");
 
@@ -55,58 +55,69 @@ export function buildProgram(): Command {
     styleTitle: (str: string): string => bold(theme.accent(str)),
     styleUsage: (str: string): string => bold(theme.text(str)),
     styleCommandDescription: (str: string): string => theme.muted(str),
-    styleOptionTerm: (str: string): string => theme.text(str),
+    styleOptionTerm: (str: string): string => theme.success(str),
     styleOptionDescription: (str: string): string => theme.muted(str),
-    styleSubcommandTerm: (str: string): string => theme.accent(str),
+    styleSubcommandTerm: (str: string): string => theme.accentAlt(str),
     styleSubcommandDescription: (str: string): string => theme.muted(str),
   });
 
   program
     .name("hephaestus")
-    .description("write ai agents once in markdown, forge them for your coding harness.")
+    .description("write once in markdown. forge for any harness.")
     .version(ENGINE_VERSION, "-v, --version");
 
   program
     .command("bind [path]")
-    .description("bind the workshop to a canonical content directory.")
-    .action((path?: string) => guard(() => runBind({ path })));
+    .description("anchor the workshop - bind to a canonical source.")
+    .option("-f, --force", "rebind even if a different canonical source is already bound", false)
+    .action((path: string | undefined, options: { force: boolean }) =>
+      guard(() => runBind({ path, force: options.force })),
+    );
 
   program
     .command("forge")
-    .description("provision agents and skills into a project (interactive).")
+    .description("strike the anvil - shape the source into provisioned files.")
     .option("-d, --dir <dir>", "target project directory", ".")
-    .option("-f, --force", "re-initialise even if a lockfile already exists", false)
+    .option(
+      "-f, --force",
+      "re-initialise even if a lockfile already exists or can't be read",
+      false,
+    )
     .action((options: { dir: string; force: boolean }) =>
       guard(() => runForge({ dir: options.dir, force: options.force })),
     );
 
   program
     .command("temper")
-    .description("re-render from canonical and reconcile with the project.")
+    .description("heat, then cool - rework what was forged.")
     .option("-d, --dir <dir>", "target project directory", ".")
-    .option("--dry-run", "compute and report changes without writing", false)
     .option(
       "--strategy <strategy>",
       "non-interactive drift strategy: overwrite | cancel | merge",
       parseStrategy,
     )
-    .action((options: { dir: string; dryRun: boolean; strategy?: DriftStrategy }) =>
-      guard(() =>
-        runTemper({ dir: options.dir, dryRun: options.dryRun, strategy: options.strategy }),
-      ),
+    .action((options: { dir: string; strategy?: DriftStrategy }) =>
+      guard(() => runTemper({ dir: options.dir, strategy: options.strategy })),
     );
 
   program
     .command("inventory")
-    .description("show provisioned agents/skills and any pending drift.")
+    .description("survey the work - catalogue what has been provisioned.")
     .option("-d, --dir <dir>", "target project directory", ".")
     .action((options: { dir: string }) => guard(() => runInventory({ dir: options.dir })));
 
   program
     .command("quench")
-    .description("remove all provisioned agents, skills and the lockfile from a project.")
+    .description("put out the forge - dissolve the provisioning entirely.")
     .option("-d, --dir <dir>", "target project directory", ".")
-    .action((options: { dir: string }) => guard(() => runQuench({ dir: options.dir })));
+    .option(
+      "-f, --force",
+      "delete immediately without confirming (irreversible; output directory is left untouched)",
+      false,
+    )
+    .action((options: { dir: string; force: boolean }) =>
+      guard(() => runQuench({ dir: options.dir, force: options.force })),
+    );
 
   return program;
 }
