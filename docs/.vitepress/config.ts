@@ -10,6 +10,12 @@ const SITE_URL = "https://hephaestus.odysseusdev.io";
 const SITE_DESCRIPTION = "write ai agents once in markdown, forge them for your coding harness.";
 
 const ICONS_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "public", "icons");
+const PACKAGE_JSON_PATH = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "package.json");
+
+/** current package version, read from the root `package.json` at build time. */
+const PACKAGE_VERSION = (
+  JSON.parse(readFileSync(PACKAGE_JSON_PATH, "utf-8")) as { version: string }
+).version;
 
 /**
  * read an icon SVG from `public/icons/`.
@@ -77,8 +83,14 @@ export default defineConfig({
       { text: "guide", link: "/guide/getting-started" },
       { text: "reference", link: "/reference/commands" },
       {
-        text: "changelog",
-        link: "https://github.com/odysseusdev/hephaestus/blob/main/CHANGELOG.md",
+        text: `v${PACKAGE_VERSION}`,
+        items: [
+          {
+            text: "changelog",
+            link: "https://github.com/odysseusdev/hephaestus/blob/main/CHANGELOG.md",
+          },
+          { text: "npm", link: "https://www.npmjs.com/package/@odysseusdev/hephaestus" },
+        ],
       },
     ],
 
@@ -88,6 +100,7 @@ export default defineConfig({
         items: [
           { text: "getting started", link: "/guide/getting-started" },
           { text: "concepts", link: "/guide/concepts" },
+          { text: "ci usage", link: "/guide/ci" },
         ],
       },
       {

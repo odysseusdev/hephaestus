@@ -25,12 +25,12 @@ selecting them at `forge` time isn't possible until future releases.
 
 agent files are markdown with YAML frontmatter that claude code understands directly.
 
-| field         | source                                                                     |
-| ------------- | -------------------------------------------------------------------------- |
-| `name`        | the agent's `id`                                                           |
-| `description` | copied verbatim from canon frontmatter                                     |
-| `tools`       | canon `tools` mapped through the table below; omitted if the list is empty |
-| `model`       | resolved from `tier` (or `modelOverrides.claude`, which wins outright)     |
+| field         | source                                                                      |
+| ------------- | --------------------------------------------------------------------------- |
+| `name`        | the agent's `id`                                                            |
+| `description` | copied verbatim from canonincal source frontmatter                          |
+| `tools`       | canon `tools` mapped through the table below (omitted if the list is empty) |
+| `model`       | resolved from `tier` (or `modelOverrides.claude`, which wins outright)      |
 
 **skills**
 
@@ -53,12 +53,14 @@ claude maps them like this:
 | `webfetch`  | `WebFetch`      |
 
 ::: warning unrecognised tool values
-an unrecognised value just gets skipped: the agent gets no matching tool for it, and `forge`/`temper` prints `⚠ Unrecognised tool "<value>" for Claude harness — no output tool granted.`. if an agent seems to be missing a tool you expected, check for this warning first. see [canonical source reference](/reference/canonical-source#agent-frontmatter) for why this is allowed at all.
+an unrecognised value just gets skipped: the agent gets no matching tool for it, and `forge`/`temper` prints `⚠ Unrecognised tool "<value>" for Claude harness — no output tool granted.`.
+
+if an agent seems to be missing a tool you expected, check for this warning first. see [agent frontmatter](/reference/canonical-source#agent-frontmatter) for why this is allowed at all.
 :::
 
 ### model tiers
 
-`tier` is abstract, not a concrete model (see [canonical source reference](/reference/canonical-source#model-tiers) for why).
+`tier` is abstract, not a concrete model (see [model tiers](/reference/canonical-source#model-tiers) for why).
 
 claude maps tiers like this:
 
@@ -72,7 +74,7 @@ claude maps tiers like this:
 
 ### <code v-pre>{{skills}}</code>
 
-see [canonical source reference](/reference/canonical-source#tokens) for what this token means in general.
+see [tokens](/reference/canonical-source#tokens) for what this token means in general.
 
 claude code renders it like this, with paths relative to the agent's own output location (`.claude/agents/`) so the links resolve correctly on disk:
 

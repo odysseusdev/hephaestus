@@ -8,9 +8,9 @@ you write an agent once, as a markdown file with a bit of frontmatter. hephaestu
 
 ## prerequisites
 
-- **node >= v20**: ESM-only CLI and won't run on older runtimes.
-- **npm**: developed and tested against npm; other package managers likely work.
-- **a disk**: a place to keep your canonical agents and skills: any directory on disk.
+1. **node >= v20**: ESM-only CLI and won't run on older runtimes.
+2. **npm**: developed and tested against npm. other package managers likely work.
+3. **a disk**: a place to keep your canonical agents and skills. any directory on disk.
 
 ## 1. install
 
@@ -62,7 +62,7 @@ hephaestus --version
 
 ## 2. define a source
 
-your canonical agents and skills are just a folder with two subdirectories:
+your canonical source of agents and skills is just a folder with two subdirectories:
 
 ```
 <canon-dir>/
@@ -70,16 +70,18 @@ your canonical agents and skills are just a folder with two subdirectories:
   skills/
 ```
 
-it can sit anywhere on disk and, outside of a few frontmatter fields, hephaestus doesn't enforce what these files look like. you could also set up a separate repo to version control these.
+it can sit anywhere on disk and, outside of a few frontmatter fields, hephaestus doesn't enforce what these files look like.
 
-the point is, it's up to you.
+you could also set up a separate repo to version control these. the point is, it's up to you.
 
-see [canonical source reference](/reference/canonical-source) for the full directory layout and frontmatter schema hephaestus expects.
+see [canonical source](/reference/canonical-source) for the full directory layout and frontmatter schema hephaestus expects.
 
 :::details examples
-the repo ships worked examples under [`examples/`](https://github.com/odysseusdev/hephaestus/tree/main/examples). `agent-creator` and `skill-creator` are agents whose entire job is to scaffold _new_ canonical agents and skills for you, guided by the hephaestus format skills that document the rules.
+the repo ships worked examples under [`examples/`](https://github.com/odysseusdev/hephaestus/tree/main/examples).
 
-cloning `examples/` as a starting point and forging those two agents into a project is the fastest way to get a working canon.
+`agent-creator` and `skill-creator` are agents whose entire job is to scaffold _new_ canonical agents and skills for you, guided by the hephaestus format skills that document the rules.
+
+cloning `examples/` as a starting point and forging those two agents into a project is the fastest way to get started.
 :::
 
 ## 3. bind hephaestus to it
@@ -88,14 +90,14 @@ cloning `examples/` as a starting point and forging those two agents into a proj
 hephaestus bind ~/<canon-dir>
 ```
 
-this writes the resolved absolute path to `~/.config/hephaestus/config.json`. every subsequent command in any project on this machine reads from that same canonincal source unless overridden.
+this writes the resolved absolute path to `~/.config/hephaestus/config.json`. every subsequent command in any project on this machine reads from that same canonical source unless overridden.
 
 ::: info validation
 `bind` checks the path exists and contains both `agents/` and `skills/` before writing anything. it fails fast with a clear message rather than saving a broken pointer.
 :::
 
 ::: details usage in ci
-set `HEPHAESTUS_CANON_DIR` as an environment variable instead of running `bind`. it takes precedence over the saved config file and needs no interactive step. see [configuration](/reference/configuration#canonical-source-resolution) for the full resolution order.
+set `HEPHAESTUS_CANON_DIR` instead of running `bind` interactively. see [using hephaestus in ci](/guide/ci) for the full pattern.
 :::
 
 ## 4. forge into a project
@@ -116,13 +118,10 @@ your selected agents land at the relevant directories your selected harnesses ex
 
 a `hephaestus.lock.yaml` lockfile records exactly what was written and its content hash.
 
-::: tip forgot to `bind` beforehand?
-if you run `forge` with no canoncial source bound, it runs the `bind` prompt inline first. you don't have to remember to run `bind` separately before your very first `forge`.
-:::
-
 ## next
 
 - [concepts](/guide/concepts): canon model, agents, skills, tiers, template tokens
 - [commands](/reference/commands): full flag reference for every command
 - [lockfile](/reference/lockfile): exactly how `temper` decides what to write, keep, or flag as drift
 - [harnesses](/reference/harnesses): what gets written to disk, per harness
+- [using hephaestus in ci](/guide/ci): running hephaestus in an unattended pipeline

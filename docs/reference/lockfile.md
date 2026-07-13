@@ -36,9 +36,7 @@ there's no "did you change it?" to ask yet, so it's compared straight against th
 matches → `skip`, differs → `drift`.
 :::
 
-## drift
-
-### resolving drift
+## resolving drift
 
 there are 3 different strategies to handle drift:
 
@@ -58,7 +56,7 @@ there are 3 different strategies to handle drift:
 binary bundled skill resources (anything under a skill directory that isn't markdown) can't carry conflict markers. `temper --strategy merge` throws if either side of a drifted binary file isn't text. choose `overwrite` or `cancel` for those instead.
 :::
 
-see [commands → temper](/reference/commands#temper) for the `--strategy` and `--dry-run` flags that drive this non-interactively.
+see [`temper`](/reference/commands#temper) for the `--strategy` flag that drives this non-interactively.
 
 ## lockfile versioning
 
@@ -66,10 +64,12 @@ the lockfile has its own schema version (`LOCKFILE_VERSION`), independent of the
 
 ### older version?
 
-automatically migrated forward and **written back to disk** as part of the same `temper`/`inventory` call, including read-only calls like `temper --dry-run`.
+automatically migrated forward and **written back to disk** as part of any command that reads the lockfile (`forge`, `temper`, `inventory`, `quench`), including the fully read-only `inventory` command.
+
+before writing, the raw pre-migration lockfile is backed up to `hephaestus.lock.yaml.bak`. only the most recent migration is kept, each new migration overwrites the previous backup. you'll see a "migrating lockfile" note naming the backup, followed by a "migration complete" note once the write-back finishes.
 
 ::: warning breaking rules
-this is a deliberate exception to "dry-run writes nothing" rule, but needed so that hephaestus can continue to run its subsequent commands correctly.
+this is a deliberate exception to inventory's "read-only" contract, but needed so that hephaestus can continue to run its subsequent commands correctly.
 :::
 
 ### newer version?

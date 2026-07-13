@@ -1,4 +1,4 @@
-# canonical source reference
+# canonical source
 
 full directory layout and frontmatter schema for a canonical source.
 
@@ -47,14 +47,14 @@ everything else is silently ignored, so independently-maintained canon files can
 ::: warning tool values aren't validated
 `tools` accepts any string, not just the seven names above. an unrecognised value doesn't fail loading, it just means no harness maps it to anything.
 
-see [unrecognised tool values](/reference/harnesses#abstract-tools) for what that looks like at forge time.
+see [abstract tools](/reference/harnesses#abstract-tools) for what that looks like at forge time.
 :::
 
 ### model tiers
 
 each agent declares an abstract `tier` (`fast` / `balanced` / `flagship`), not a concrete model.
 
-every harness maps tiers to its own models. see [harnesses](/reference/harnesses#model-tiers) for the individual harness mappings.
+every harness maps tiers to its own models. see [model tiers](/reference/harnesses#model-tiers) for the individual harness mappings.
 
 ::: tip need to use a specific model?
 use `modelOverrides` in an agent's frontmatter to pin a specific model alias for one harness regardless of tier; an override always wins over the tier map.
