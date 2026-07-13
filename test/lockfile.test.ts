@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -70,14 +70,17 @@ describe("readLockfile — equal version (no regression)", () => {
     expect(result).toEqual(validLockfile());
   });
 
-  it("does not invoke the migration machinery or an onMigrate callback", async () => {
+  it("does not invoke the migration machinery, the callbacks, or write a backup", async () => {
     await writeRawLockfile(validLockfile());
-    const onMigrate = vi.fn();
+    const onMigrateStart = vi.fn();
+    const onMigrateComplete = vi.fn();
 
-    await readLockfile(projectRoot, onMigrate);
+    await readLockfile(projectRoot, onMigrateStart, onMigrateComplete);
 
     expect(applyMigrationsMock).not.toHaveBeenCalled();
-    expect(onMigrate).not.toHaveBeenCalled();
+    expect(onMigrateStart).not.toHaveBeenCalled();
+    expect(onMigrateComplete).not.toHaveBeenCalled();
+    await expect(stat(`${lockPath}.bak`)).rejects.toThrow();
   });
 
   it("still throws LockfileError with issue detail for an equal-version file with a bad shape", async () => {
@@ -124,13 +127,17 @@ describe("readLockfile — on-disk version newer than LOCKFILE_VERSION", () => {
     }
   });
 
-  it("does not call the migration machinery or onMigrate", async () => {
+  it("does not call the migration machinery or either callback", async () => {
     await writeRawLockfile({ version: LOCKFILE_VERSION + 1, engineVersion: "9.9.9" });
-    const onMigrate = vi.fn();
+    const onMigrateStart = vi.fn();
+    const onMigrateComplete = vi.fn();
 
-    await expect(readLockfile(projectRoot, onMigrate)).rejects.toThrow(LockfileTooNewError);
+    await expect(readLockfile(projectRoot, onMigrateStart, onMigrateComplete)).rejects.toThrow(
+      LockfileTooNewError,
+    );
     expect(applyMigrationsMock).not.toHaveBeenCalled();
-    expect(onMigrate).not.toHaveBeenCalled();
+    expect(onMigrateStart).not.toHaveBeenCalled();
+    expect(onMigrateComplete).not.toHaveBeenCalled();
   });
 });
 
@@ -142,38 +149,60 @@ describe("readLockfile — on-disk version older than LOCKFILE_VERSION", () => {
     await expect(readLockfile(projectRoot)).rejects.toThrow(/could not be migrated/);
   });
 
-  it("migrates, fires onMigrate with the correct from/to versions, writes back, and returns valid data", async () => {
+  it("migrates, fires both callbacks with the correct from/to versions in order, writes back, and returns valid data", async () => {
     const onDiskV0 = { version: 0, engineVersion: "0.9.0", legacyField: "old-shape" };
     await writeRawLockfile(onDiskV0);
 
     const migratedShape = validLockfile({ engineVersion: "0.9.0" });
     applyMigrationsMock.mockReturnValueOnce(migratedShape);
 
-    const onMigrate = vi.fn();
-    const result = await readLockfile(projectRoot, onMigrate);
+    const callOrder: string[] = [];
+    const onMigrateStart = vi.fn(() => callOrder.push("start"));
+    const onMigrateComplete = vi.fn(() => callOrder.push("complete"));
 
-    expect(onMigrate).toHaveBeenCalledExactlyOnceWith(0, LOCKFILE_VERSION);
+    const result = await readLockfile(projectRoot, onMigrateStart, onMigrateComplete);
+
+    expect(onMigrateStart).toHaveBeenCalledExactlyOnceWith(0, LOCKFILE_VERSION);
+    expect(onMigrateComplete).toHaveBeenCalledExactlyOnceWith(0, LOCKFILE_VERSION);
+    expect(callOrder).toEqual(["start", "complete"]);
     expect(applyMigrationsMock).toHaveBeenCalledWith(onDiskV0, 0, LOCKFILE_VERSION);
     expect(result).toEqual(migratedShape);
 
     // write-back: re-reading raw bytes off disk shows the upgraded version, not v0.
-    const { readFile } = await import("node:fs/promises");
     const onDisk: unknown = parseYaml(await readFile(lockPath, "utf8"));
     expect((onDisk as { version: number }).version).toBe(LOCKFILE_VERSION);
     expect((onDisk as { legacyField?: string }).legacyField).toBeUndefined();
   });
 
-  it("fires onMigrate even when the migrated shape ultimately fails strict validation", async () => {
+  it("writes a .bak file with the exact pre-migration raw content when migration occurs", async () => {
+    const onDiskV0 = { version: 0, engineVersion: "0.9.0", legacyField: "old-shape" };
+    await writeRawLockfile(onDiskV0);
+    const rawBeforeMigration: string = await readFile(lockPath, "utf8");
+
+    applyMigrationsMock.mockReturnValueOnce(validLockfile({ engineVersion: "0.9.0" }));
+
+    await readLockfile(projectRoot);
+
+    const backupContents: string = await readFile(`${lockPath}.bak`, "utf8");
+    expect(backupContents).toBe(rawBeforeMigration);
+    expect(parseYaml(backupContents)).toEqual(onDiskV0);
+  });
+
+  it("fires onMigrateStart (but not onMigrateComplete) even when the migrated shape ultimately fails strict validation", async () => {
     await writeRawLockfile({ version: 0, engineVersion: "0.9.0" });
     applyMigrationsMock.mockReturnValueOnce({ version: LOCKFILE_VERSION }); // missing required fields
 
-    const onMigrate = vi.fn();
+    const onMigrateStart = vi.fn();
+    const onMigrateComplete = vi.fn();
 
-    await expect(readLockfile(projectRoot, onMigrate)).rejects.toThrow(LockfileError);
-    expect(onMigrate).toHaveBeenCalledExactlyOnceWith(0, LOCKFILE_VERSION);
+    await expect(readLockfile(projectRoot, onMigrateStart, onMigrateComplete)).rejects.toThrow(
+      LockfileError,
+    );
+    expect(onMigrateStart).toHaveBeenCalledExactlyOnceWith(0, LOCKFILE_VERSION);
+    expect(onMigrateComplete).not.toHaveBeenCalled();
   });
 
-  it("works with no onMigrate callback passed at all", async () => {
+  it("works with no callbacks passed at all", async () => {
     await writeRawLockfile({ version: 0, engineVersion: "0.9.0" });
     applyMigrationsMock.mockReturnValueOnce(validLockfile());
 

@@ -132,7 +132,7 @@ describe("sync", () => {
     const before = await readFile(join(projectRoot, SKILL_FILE), "utf8");
     const lockBefore = JSON.stringify(await readLockfile(projectRoot));
 
-    await runTemper({ dir: projectRoot, dryRun: false }, CONTENT);
+    await runTemper({ dir: projectRoot }, CONTENT);
 
     expect(await readFile(join(projectRoot, SKILL_FILE), "utf8")).toBe(before);
     expect(JSON.stringify(await readLockfile(projectRoot))).toBe(lockBefore);
@@ -143,7 +143,7 @@ describe("sync", () => {
     const edited = "EDITED BY USER\n";
     await writeFile(join(projectRoot, SKILL_FILE), edited, "utf8");
 
-    await runTemper({ dir: projectRoot, dryRun: false }, CONTENT);
+    await runTemper({ dir: projectRoot }, CONTENT);
 
     expect(await readFile(join(projectRoot, SKILL_FILE), "utf8")).toBe(edited);
   });
@@ -152,7 +152,7 @@ describe("sync", () => {
     await provision();
     await rm(join(projectRoot, SKILL_FILE), { force: true });
 
-    await runTemper({ dir: projectRoot, dryRun: false }, CONTENT);
+    await runTemper({ dir: projectRoot }, CONTENT);
 
     expect(await readFile(join(projectRoot, SKILL_FILE), "utf8")).toContain("# typescript");
   });
@@ -162,7 +162,7 @@ describe("sync", () => {
     await writeFile(join(projectRoot, SKILL_FILE), "DRIFTED\n", "utf8");
     await staleLockForSkill();
 
-    await runTemper({ dir: projectRoot, dryRun: false, strategy: "overwrite" }, CONTENT);
+    await runTemper({ dir: projectRoot, strategy: "overwrite" }, CONTENT);
 
     const after = await readFile(join(projectRoot, SKILL_FILE), "utf8");
     expect(after).toContain("# typescript");
@@ -172,26 +172,12 @@ describe("sync", () => {
     );
   });
 
-  it("drift + --dry-run reports but writes nothing and does not advance the lock", async () => {
-    await provision();
-    await writeFile(join(projectRoot, SKILL_FILE), "DRIFTED\n", "utf8");
-    await staleLockForSkill();
-
-    await runTemper({ dir: projectRoot, dryRun: true, strategy: "overwrite" }, CONTENT);
-
-    expect(await readFile(join(projectRoot, SKILL_FILE), "utf8")).toBe("DRIFTED\n");
-    const lockfile = await readLockfile(projectRoot);
-    expect(lockfile?.skills.typescript?.outputs.claude?.files?.["conventions.md"]).toBe(
-      "sha256:stale",
-    );
-  });
-
   it("drift + --strategy cancel keeps the user version and stays flagged", async () => {
     await provision();
     await writeFile(join(projectRoot, SKILL_FILE), "DRIFTED\n", "utf8");
     await staleLockForSkill();
 
-    await runTemper({ dir: projectRoot, dryRun: false, strategy: "cancel" }, CONTENT);
+    await runTemper({ dir: projectRoot, strategy: "cancel" }, CONTENT);
 
     expect(await readFile(join(projectRoot, SKILL_FILE), "utf8")).toBe("DRIFTED\n");
     const lockfile = await readLockfile(projectRoot);

@@ -22,9 +22,10 @@ vi.mock("../src/ui/prompts.js", async (importOriginal) => {
   return { ...actual, note: noteMock, outro: outroMock, intro: vi.fn() };
 });
 
-// Capture the `onMigrate` callback `runInventory` passes to `readLockfile`,
-// while still delegating to the real implementation — proves the wiring
-// without needing a real registered migration to exist yet.
+// Capture the `onMigrateStart`/`onMigrateComplete` callbacks `runInventory`
+// passes to `readLockfile`, while still delegating to the real implementation
+// — proves the wiring without needing a real registered migration to exist
+// yet.
 const readLockfileArgsSpy = vi.hoisted(() => vi.fn());
 
 vi.mock("../src/core/lockfile.js", async (importOriginal) => {
@@ -33,10 +34,11 @@ vi.mock("../src/core/lockfile.js", async (importOriginal) => {
     ...actual,
     readLockfile: (async (
       projectRoot: string,
-      onMigrate?: (fromVersion: number, toVersion: number) => void,
+      onMigrateStart?: (fromVersion: number, toVersion: number) => void,
+      onMigrateComplete?: (fromVersion: number, toVersion: number) => void,
     ) => {
-      readLockfileArgsSpy(projectRoot, onMigrate);
-      return actual.readLockfile(projectRoot, onMigrate);
+      readLockfileArgsSpy(projectRoot, onMigrateStart, onMigrateComplete);
+      return actual.readLockfile(projectRoot, onMigrateStart, onMigrateComplete);
     }) as typeof actual.readLockfile,
   };
 });
@@ -61,10 +63,12 @@ beforeEach(async () => {
   noteMock.mockClear();
   outroMock.mockClear();
   readLockfileArgsSpy.mockClear();
+  process.exitCode = undefined;
 });
 
 afterEach(async () => {
   await rm(projectRoot, { recursive: true, force: true });
+  process.exitCode = undefined;
 });
 
 /** Provision `agent-creator` into `projectRoot` exactly as `forge` would. */
@@ -78,8 +82,11 @@ async function provision(): Promise<void> {
 describe("runInventory", () => {
   it("reports not-yet-provisioned when there is no lockfile, without throwing", async () => {
     await runInventory({ dir: projectRoot });
-    expect(outroMock).toHaveBeenCalledWith(expect.stringContaining("not yet provisioned"));
-    expect(noteMock).not.toHaveBeenCalled();
+    expect(noteMock).toHaveBeenCalledWith(
+      expect.stringContaining("hephaestus forge"),
+      "not provisioned",
+    );
+    expect(outroMock).toHaveBeenCalledWith("nothing to show.");
   });
 
   it("lists the provisioned agent, its tier, and skills from the lockfile", async () => {
@@ -111,24 +118,52 @@ describe("runInventory", () => {
     expect(statusCall?.[0]).toContain("0 drifted");
   });
 
-  it("wires an onMigrate callback to readLockfile that prints a themed migration note", async () => {
+  it("leaves process.exitCode unset for a freshly-provisioned, fully-synced project", async () => {
+    await provision();
+
+    await runInventory({ dir: projectRoot });
+
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it("sets process.exitCode to 1 when the project has pending changes", async () => {
+    await provision();
+    await rm(join(projectRoot, ".claude/agents/agent-creator.md"), { force: true });
+
+    await runInventory({ dir: projectRoot });
+
+    expect(process.exitCode).toBe(1);
+  });
+
+  it("wires onMigrateStart/onMigrateComplete callbacks to readLockfile that print themed migration notes", async () => {
     await provision();
 
     await runInventory({ dir: projectRoot });
 
     expect(readLockfileArgsSpy).toHaveBeenCalledTimes(1);
-    const [, onMigrate] = readLockfileArgsSpy.mock.calls[0]!;
-    expect(typeof onMigrate).toBe("function");
+    const [, onMigrateStart, onMigrateComplete] = readLockfileArgsSpy.mock.calls[0]!;
+    expect(typeof onMigrateStart).toBe("function");
+    expect(typeof onMigrateComplete).toBe("function");
 
     noteMock.mockClear();
-    (onMigrate as (from: number, to: number) => void)(1, 2);
+    (onMigrateStart as (from: number, to: number) => void)(1, 2);
 
     expect(noteMock).toHaveBeenCalledWith(
       expect.stringContaining(LOCKFILE_NAME),
       "migrating lockfile",
     );
-    const [message] = noteMock.mock.calls[0]!;
-    expect(String(message)).toContain("v1");
-    expect(String(message)).toContain("v2");
+    const [startMessage] = noteMock.mock.calls[0]!;
+    expect(String(startMessage)).toContain("v1");
+    expect(String(startMessage)).toContain("v2");
+
+    noteMock.mockClear();
+    (onMigrateComplete as (from: number, to: number) => void)(1, 2);
+
+    expect(noteMock).toHaveBeenCalledWith(
+      expect.stringContaining(LOCKFILE_NAME),
+      "migration complete",
+    );
+    const [completeMessage] = noteMock.mock.calls[0]!;
+    expect(String(completeMessage)).toContain("v2");
   });
 });

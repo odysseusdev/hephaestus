@@ -1,3 +1,8 @@
+import { readFileIfExists, toProjectPath } from "./fsops.js";
+import { hashContents } from "./hash.js";
+import type { Lockfile } from "./lockfile.js";
+import { previousLockHash, type RenderedOutput } from "./provision.js";
+
 /**
  * the decision for a single provisioned file, derived purely from three hashes.
  *
@@ -50,6 +55,30 @@ export function decideFile(input: FileSyncInput): SyncDecision {
     return "keep";
   }
   return "drift";
+}
+
+/** result of {@link decideOutputFile}: the decision plus the hashes it was derived from. */
+export interface FileDecisionResult {
+  decision: SyncDecision;
+  lockHash: string | undefined;
+  diskContents: Buffer | null;
+}
+
+/**
+ * gather the three hashes needed for one rendered output file (lock, disk,
+ * freshly-rendered) and apply the three-way decision table to it.
+ */
+export async function decideOutputFile(
+  output: RenderedOutput,
+  file: { path: string; contents: string | Uint8Array; hash: string },
+  lockfile: Lockfile,
+  projectRoot: string,
+): Promise<FileDecisionResult> {
+  const lockHash: string | undefined = previousLockHash(lockfile, output, file.path);
+  const diskContents: Buffer | null = await readFileIfExists(toProjectPath(projectRoot, file.path));
+  const diskHash: string | null = diskContents === null ? null : hashContents(diskContents);
+  const decision: SyncDecision = decideFile({ lockHash, diskHash, newHash: file.hash });
+  return { decision, lockHash, diskContents };
 }
 
 /** default conflict markers, git-style, distinguishing project from source. */

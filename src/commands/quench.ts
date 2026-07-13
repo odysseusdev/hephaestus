@@ -8,6 +8,7 @@ import { theme } from "../ui/theme.js";
 /** options accepted by the `quench` command. */
 export interface QuenchOptions {
   dir: string;
+  force: boolean;
 }
 
 /** all paths collected from the lockfile that quench will remove. */
@@ -61,7 +62,21 @@ export async function runQuench(options: QuenchOptions): Promise<void> {
 
   intro("quench", "put out the forge - dissolve the provisioning entirely.");
 
-  const lockfile: Lockfile | null = await readLockfile(projectRoot);
+  const lockfile: Lockfile | null = await readLockfile(
+    projectRoot,
+    (fromVersion, toVersion) => {
+      note(
+        `${theme.accent(LOCKFILE_NAME)} is v${fromVersion}, hephaestus expects v${toVersion}.\nbacking up to ${theme.accent(`${LOCKFILE_NAME}.bak`)}, then migrating...`,
+        "migrating lockfile",
+      );
+    },
+    (_fromVersion, toVersion) => {
+      note(
+        `${theme.accent(LOCKFILE_NAME)} migrated to v${toVersion}.\nbackup saved: ${theme.accent(`${LOCKFILE_NAME}.bak`)}`,
+        "migration complete",
+      );
+    },
+  );
   if (!lockfile) {
     note(
       `no ${theme.accent(LOCKFILE_NAME)} found.\nrun ${theme.accent("hephaestus forge")} first, or check the target directory.`,
@@ -73,6 +88,11 @@ export async function runQuench(options: QuenchOptions): Promise<void> {
 
   const { filePaths, skillDirs } = collectTrackedPaths(lockfile);
 
+  note(
+    "this cannot be undone. the only way back is re-forging from the canonical source, which will not recover any edits you made to these files.",
+    "irreversible",
+  );
+
   const deleteLines: string[] = [
     ...filePaths.map((path) => `${theme.danger("−")} ${theme.text(path)}`),
     `${theme.danger("−")} ${theme.text(LOCKFILE_NAME)}`,
@@ -80,10 +100,12 @@ export async function runQuench(options: QuenchOptions): Promise<void> {
   note(deleteLines.join("\n"), "files to remove");
 
   const totalFiles = filePaths.length + 1; // +1 for the lockfile
-  const proceed = await confirm(
-    `permanently delete ${theme.accent(String(totalFiles))} file(s) from ${theme.accent(options.dir)}?`,
-    false,
-  );
+  const proceed = options.force
+    ? true
+    : await confirm(
+        `permanently delete ${theme.accent(String(totalFiles))} file(s) from ${theme.accent(options.dir)}?`,
+        false,
+      );
   if (!proceed) {
     outro("cancelled. nothing was removed.");
     return;
@@ -109,10 +131,12 @@ export async function runQuench(options: QuenchOptions): Promise<void> {
   await removeFile(toProjectPath(projectRoot, LOCKFILE_NAME));
 
   const outputDir = lockfile.outputDir;
-  const removeOutput = await confirm(
-    `also remove output directory ${theme.accent(`${outputDir}/`)}? (may contain agent runtime files)`,
-    false,
-  );
+  const removeOutput = options.force
+    ? false
+    : await confirm(
+        `also remove output directory ${theme.accent(`${outputDir}/`)}? (may contain agent runtime files)`,
+        false,
+      );
   if (removeOutput) {
     await removeDir(toProjectPath(projectRoot, outputDir));
     note(`${theme.danger(`${outputDir}/`)} removed.`, "output");

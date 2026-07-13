@@ -96,12 +96,18 @@ export async function removeFile(filePath: string): Promise<boolean> {
   }
 }
 
-/** remove a directory only if empty. silently ignores ENOENT and ENOTEMPTY. */
+/**
+ * remove a directory only if empty. silently ignores ENOENT and ENOTEMPTY;
+ * other errors (e.g. EACCES) are rethrown with context.
+ */
 export async function tryRemoveEmptyDir(dirPath: string): Promise<void> {
   try {
     await rmdir(dirPath);
-  } catch {
-    // ENOENT or ENOTEMPTY — leave as-is
+  } catch (error: unknown) {
+    if (isNotFound(error) || isErrorCode(error, "ENOTEMPTY")) {
+      return;
+    }
+    throw new Error(`Failed to remove ${dirPath}: ${describeError(error)}`);
   }
 }
 
@@ -110,14 +116,19 @@ export async function removeDir(dirPath: string): Promise<void> {
   await rm(dirPath, { recursive: true, force: true });
 }
 
-/** whether an unknown error is a Node "file not found" error. */
-function isNotFound(error: unknown): boolean {
+/** whether an unknown error carries the given Node error `code`. */
+function isErrorCode(error: unknown, code: string): boolean {
   return (
     typeof error === "object" &&
     error !== null &&
     "code" in error &&
-    (error as { code?: string }).code === "ENOENT"
+    (error as { code?: string }).code === code
   );
+}
+
+/** whether an unknown error is a Node "file not found" error. */
+function isNotFound(error: unknown): boolean {
+  return isErrorCode(error, "ENOENT");
 }
 
 /** extract a human-readable message from an unknown thrown value. */

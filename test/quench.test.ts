@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { runQuench } from "../src/commands/quench.js";
-import { writeLockfile } from "../src/core/lockfile.js";
+import { LOCKFILE_NAME, writeLockfile } from "../src/core/lockfile.js";
 import { buildLockfile, renderAll, type ProvisionSelection } from "../src/core/provision.js";
 import type { CanonicalAgent, CanonicalSkill } from "../src/core/schema.js";
 import { ENGINE_VERSION } from "../src/core/version.js";
@@ -14,10 +14,32 @@ import type { CanonicalContent } from "../src/core/loader.js";
 
 // Drive `confirm()` programmatically instead of needing a real TTY.
 const confirmMock = vi.hoisted(() => vi.fn());
+const noteMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../src/ui/prompts.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../src/ui/prompts.js")>();
-  return { ...actual, confirm: confirmMock, note: vi.fn(), outro: vi.fn(), intro: vi.fn() };
+  return { ...actual, confirm: confirmMock, note: noteMock, outro: vi.fn(), intro: vi.fn() };
+});
+
+// Capture the `onMigrateStart`/`onMigrateComplete` callbacks `runQuench`
+// passes to `readLockfile`, while still delegating to the real implementation
+// — proves the wiring without needing a real registered migration to exist
+// yet.
+const readLockfileArgsSpy = vi.hoisted(() => vi.fn());
+
+vi.mock("../src/core/lockfile.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../src/core/lockfile.js")>();
+  return {
+    ...actual,
+    readLockfile: (async (
+      projectRoot: string,
+      onMigrateStart?: (fromVersion: number, toVersion: number) => void,
+      onMigrateComplete?: (fromVersion: number, toVersion: number) => void,
+    ) => {
+      readLockfileArgsSpy(projectRoot, onMigrateStart, onMigrateComplete);
+      return actual.readLockfile(projectRoot, onMigrateStart, onMigrateComplete);
+    }) as typeof actual.readLockfile,
+  };
 });
 
 /** Minimal skill with one content file, matching the integration test fixtures. */
@@ -66,6 +88,8 @@ let projectRoot: string;
 beforeEach(async () => {
   projectRoot = await mkdtemp(join(tmpdir(), "heph-quench-"));
   confirmMock.mockReset();
+  noteMock.mockClear();
+  readLockfileArgsSpy.mockClear();
 });
 
 afterEach(async () => {
@@ -91,7 +115,7 @@ async function exists(relativePath: string): Promise<boolean> {
 
 describe("runQuench", () => {
   it("does nothing and never prompts when there is no lockfile", async () => {
-    await runQuench({ dir: projectRoot });
+    await runQuench({ dir: projectRoot, force: false });
     expect(confirmMock).not.toHaveBeenCalled();
   });
 
@@ -99,7 +123,7 @@ describe("runQuench", () => {
     await provision();
     confirmMock.mockResolvedValueOnce(false);
 
-    await runQuench({ dir: projectRoot });
+    await runQuench({ dir: projectRoot, force: false });
 
     expect(await exists(AGENT_FILE)).toBe(true);
     expect(await exists(LOCKFILE_PATH)).toBe(true);
@@ -109,7 +133,7 @@ describe("runQuench", () => {
     await provision();
     confirmMock.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
 
-    await runQuench({ dir: projectRoot });
+    await runQuench({ dir: projectRoot, force: false });
 
     expect(await exists(AGENT_FILE)).toBe(false);
     expect(await exists(SKILL_FILE)).toBe(false);
@@ -121,7 +145,7 @@ describe("runQuench", () => {
     await provision();
     confirmMock.mockResolvedValueOnce(true).mockResolvedValueOnce(true);
 
-    await runQuench({ dir: projectRoot });
+    await runQuench({ dir: projectRoot, force: false });
 
     expect(await exists("docs")).toBe(false);
   });
@@ -130,8 +154,74 @@ describe("runQuench", () => {
     await provision();
     confirmMock.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
 
-    await runQuench({ dir: projectRoot });
+    await runQuench({ dir: projectRoot, force: false });
 
     await expect(readdir(join(projectRoot, ".claude/skills/typescript"))).rejects.toThrow();
+  });
+
+  it("--force skips both confirmations: deletes files without prompting, and leaves the output dir untouched", async () => {
+    await provision();
+
+    await runQuench({ dir: projectRoot, force: true });
+
+    expect(confirmMock).not.toHaveBeenCalled();
+    expect(await exists(AGENT_FILE)).toBe(false);
+    expect(await exists(SKILL_FILE)).toBe(false);
+    expect(await exists(LOCKFILE_PATH)).toBe(false);
+    expect(await exists("docs")).toBe(true);
+  });
+
+  it("prints the irreversible warning note on every run, force or not", async () => {
+    await provision();
+    confirmMock.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+
+    await runQuench({ dir: projectRoot, force: false });
+
+    expect(noteMock).toHaveBeenCalledWith(
+      expect.stringContaining("this cannot be undone"),
+      "irreversible",
+    );
+
+    noteMock.mockClear();
+    await provision();
+    await runQuench({ dir: projectRoot, force: true });
+
+    expect(noteMock).toHaveBeenCalledWith(
+      expect.stringContaining("this cannot be undone"),
+      "irreversible",
+    );
+  });
+
+  it("wires onMigrateStart/onMigrateComplete callbacks to readLockfile that print themed migration notes", async () => {
+    await provision();
+    confirmMock.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+
+    await runQuench({ dir: projectRoot, force: false });
+
+    expect(readLockfileArgsSpy).toHaveBeenCalledTimes(1);
+    const [, onMigrateStart, onMigrateComplete] = readLockfileArgsSpy.mock.calls[0]!;
+    expect(typeof onMigrateStart).toBe("function");
+    expect(typeof onMigrateComplete).toBe("function");
+
+    noteMock.mockClear();
+    (onMigrateStart as (from: number, to: number) => void)(1, 2);
+
+    expect(noteMock).toHaveBeenCalledWith(
+      expect.stringContaining(LOCKFILE_NAME),
+      "migrating lockfile",
+    );
+    const [startMessage] = noteMock.mock.calls[0]!;
+    expect(String(startMessage)).toContain("v1");
+    expect(String(startMessage)).toContain("v2");
+
+    noteMock.mockClear();
+    (onMigrateComplete as (from: number, to: number) => void)(1, 2);
+
+    expect(noteMock).toHaveBeenCalledWith(
+      expect.stringContaining(LOCKFILE_NAME),
+      "migration complete",
+    );
+    const [completeMessage] = noteMock.mock.calls[0]!;
+    expect(String(completeMessage)).toContain("v2");
   });
 });

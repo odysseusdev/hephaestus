@@ -134,16 +134,20 @@ function validateLockfileShape(data: unknown): Lockfile {
  *   (never best-effort-read; upgrade the CLI or delete the lockfile).
  * - **older than this CLI** — auto-migrated forward via
  *   `LOCKFILE_MIGRATIONS`/`applyMigrations` (see `lockfile-migrations.ts`),
- *   then **written back to disk** before being returned. this write-back is a
- *   deliberate side effect on the migration path, including for read-only
- *   callers (`inventory`, `temper --dry-run`) — it is only acceptable because
- *   `onMigrate` fires first, making it a notified change rather than a silent
- *   one. callers must wire `onMigrate` to user-facing UI.
+ *   backed up to `${LOCKFILE_NAME}.bak` (raw pre-migration content, most
+ *   recent overwrite only), then **written back to disk** before being
+ *   returned. this write-back is a deliberate side effect on the migration
+ *   path, including for read-only callers (`inventory`, `temper --dry-run`)
+ *   — it is only acceptable because `onMigrateStart` fires first, making it
+ *   a notified change rather than a silent one. callers must wire both
+ *   callbacks to user-facing UI.
  *
- * @param onMigrate - called with `(fromVersion, toVersion)` before the
- *   migrated lockfile is written back to disk, whenever migration occurs.
- *   required by policy for the write-back to be non-silent; core stays
- *   UI-agnostic by taking a plain callback instead of importing `ui/`.
+ * @param onMigrateStart - called with `(fromVersion, toVersion)` before the
+ *   backup and write-back happen, whenever migration occurs. required by
+ *   policy for the write-back to be non-silent; core stays UI-agnostic by
+ *   taking a plain callback instead of importing `ui/`.
+ * @param onMigrateComplete - called with `(fromVersion, toVersion)` after
+ *   the migrated lockfile has been written back to disk.
  * @throws {LockfileError} if the file exists but is invalid YAML, invalid
  *   shape, or cannot be migrated (no registered migration path).
  * @throws {LockfileTooNewError} if the on-disk `version` is newer than this
@@ -151,7 +155,8 @@ function validateLockfileShape(data: unknown): Lockfile {
  */
 export async function readLockfile(
   projectRoot: string,
-  onMigrate?: LockfileMigrationNotice,
+  onMigrateStart?: LockfileMigrationNotice,
+  onMigrateComplete?: LockfileMigrationNotice,
 ): Promise<Lockfile | null> {
   const lockPath: string = toProjectPath(projectRoot, LOCKFILE_NAME);
   const rawBytes: Buffer | null = await readFileIfExists(lockPath);
@@ -185,7 +190,10 @@ export async function readLockfile(
   }
 
   if (onDiskVersion < LOCKFILE_VERSION) {
-    onMigrate?.(onDiskVersion, LOCKFILE_VERSION);
+    onMigrateStart?.(onDiskVersion, LOCKFILE_VERSION);
+
+    // back up the raw pre-migration content — most recent overwrite only.
+    await writeFileAtomic(toProjectPath(projectRoot, `${LOCKFILE_NAME}.bak`), raw);
 
     let migrated: unknown;
     try {
@@ -198,6 +206,7 @@ export async function readLockfile(
 
     const validated: Lockfile = validateLockfileShape(migrated);
     await writeLockfile(projectRoot, validated);
+    onMigrateComplete?.(onDiskVersion, LOCKFILE_VERSION);
     return validated;
   }
 

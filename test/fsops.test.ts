@@ -130,6 +130,16 @@ describe("tryRemoveEmptyDir", () => {
   it("silently ignores a directory that does not exist", async () => {
     await expect(tryRemoveEmptyDir(join(projectRoot, "missing"))).resolves.toBeUndefined();
   });
+
+  it("rethrows an error that is neither ENOENT nor ENOTEMPTY", async () => {
+    // Passing a *file* path makes `rmdir` fail with ENOTDIR — a reliable,
+    // permission-independent way to trigger a code other than the two this
+    // function is documented to swallow.
+    const filePath = join(projectRoot, "not-a-dir.txt");
+    await writeFileAtomic(filePath, "x");
+
+    await expect(tryRemoveEmptyDir(filePath)).rejects.toThrow(/Failed to remove/);
+  });
 });
 
 describe("removeDir", () => {
