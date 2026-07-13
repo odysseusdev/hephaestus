@@ -1,17 +1,17 @@
 import { randomBytes } from "node:crypto";
-import { mkdir, readFile, rename, rm, rmdir, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, realpath, rename, rm, rmdir, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, resolve, sep } from "node:path";
 
 /**
  * convert a project-relative POSIX path to an absolute OS-native path, rooted
- * under `projectRoot`.
- *
- * @throws {Error} if the resolved path escapes `projectRoot` — via `../`
- *   segments or by `relativePosixPath` itself being absolute. this guards every
- *   caller that persists or prompts for a path (e.g. the `outputDir` prompt
- *   value in `forge`) against writing or deleting outside the project.
+ * under `projectRoot`. rejects `../` and absolute-path escapes, and a tracked
+ * symlink at an intermediate directory (e.g. `.claude/skills`) redirecting
+ * outside the root.
  */
-export function toProjectPath(projectRoot: string, relativePosixPath: string): string {
+export async function toProjectPath(
+  projectRoot: string,
+  relativePosixPath: string,
+): Promise<string> {
   const nativeRelative: string = relativePosixPath.split("/").join(sep);
   const resolvedRoot: string = resolve(projectRoot);
   const resolvedPath: string = resolve(resolvedRoot, nativeRelative);
@@ -24,7 +24,67 @@ export function toProjectPath(projectRoot: string, relativePosixPath: string): s
     );
   }
 
+  await assertNoSymlinkEscape(resolvedRoot, resolvedPath, relativePosixPath);
+
   return resolvedPath;
+}
+
+/**
+ * walk `resolvedPath`'s ancestors up to `resolvedRoot`, rejecting if an
+ * existing one is a symlink escaping the root. stops at the first
+ * not-yet-created segment (mkdir makes plain dirs below that) and never
+ * inspects the leaf itself (writeFileAtomic's rename is already leaf-safe).
+ */
+async function assertNoSymlinkEscape(
+  resolvedRoot: string,
+  resolvedPath: string,
+  relativePosixPath: string,
+): Promise<void> {
+  const realRoot: string = await realpathOrSelf(resolvedRoot);
+
+  let current: string = dirname(resolvedPath);
+  while (current === resolvedRoot || current.startsWith(resolvedRoot + sep)) {
+    if (current === resolvedRoot) {
+      // the root itself may legitimately be a symlink (e.g. a symlinked
+      // tmpdir); it defines the trust boundary rather than being checked
+      // against it.
+      return;
+    }
+
+    const stats = await lstat(current).catch((error: unknown) => {
+      if (isNotFound(error)) return null;
+      throw error;
+    });
+    if (stats === null) {
+      // nothing exists here yet; mkdir will create plain directories below
+      // this point, so there is no further symlink risk to check.
+      return;
+    }
+
+    if (stats.isSymbolicLink()) {
+      const realCurrent: string = await realpath(current);
+      const escapesRoot: boolean =
+        realCurrent !== realRoot && !realCurrent.startsWith(realRoot + sep);
+      if (escapesRoot) {
+        throw new Error(
+          `refusing to resolve "${relativePosixPath}" outside the project root (${resolvedRoot}): ` +
+            `"${current}" is a symlink pointing outside it.`,
+        );
+      }
+    }
+
+    current = dirname(current);
+  }
+}
+
+/** resolve a path's real (symlink-free) form, falling back to the path itself if it does not exist yet. */
+async function realpathOrSelf(path: string): Promise<string> {
+  try {
+    return await realpath(path);
+  } catch (error: unknown) {
+    if (isNotFound(error)) return path;
+    throw error;
+  }
 }
 
 /** ensure a directory exists, creating parent directories as needed. */

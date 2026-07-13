@@ -164,7 +164,7 @@ export async function runTemper(
       }
 
       if (outcome.write !== null) {
-        await writeFileAtomic(toProjectPath(projectRoot, outcome.path), outcome.write);
+        await writeFileAtomic(await toProjectPath(projectRoot, outcome.path), outcome.write);
       }
       if (outcome.recordHash !== undefined) {
         fileHashes.set(outcome.path, outcome.recordHash);

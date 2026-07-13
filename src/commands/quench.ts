@@ -114,7 +114,7 @@ export async function runQuench(options: QuenchOptions): Promise<void> {
   let removed = 0;
   let alreadyGone = 0;
   for (const relativePath of filePaths) {
-    const deleted = await removeFile(toProjectPath(projectRoot, relativePath));
+    const deleted = await removeFile(await toProjectPath(projectRoot, relativePath));
     if (deleted) {
       removed += 1;
     } else {
@@ -124,11 +124,11 @@ export async function runQuench(options: QuenchOptions): Promise<void> {
 
   // try to remove empty skill directories (non-recursive, best-effort).
   for (const relDir of skillDirs) {
-    await tryRemoveEmptyDir(toProjectPath(projectRoot, relDir));
+    await tryRemoveEmptyDir(await toProjectPath(projectRoot, relDir));
   }
 
   // lockfile last — deleting it is the point of no return.
-  await removeFile(toProjectPath(projectRoot, LOCKFILE_NAME));
+  await removeFile(await toProjectPath(projectRoot, LOCKFILE_NAME));
 
   const outputDir = lockfile.outputDir;
   const removeOutput = options.force
@@ -138,7 +138,7 @@ export async function runQuench(options: QuenchOptions): Promise<void> {
         false,
       );
   if (removeOutput) {
-    await removeDir(toProjectPath(projectRoot, outputDir));
+    await removeDir(await toProjectPath(projectRoot, outputDir));
     note(`${theme.danger(`${outputDir}/`)} removed.`, "output");
   }
 

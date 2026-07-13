@@ -75,7 +75,9 @@ export async function decideOutputFile(
   projectRoot: string,
 ): Promise<FileDecisionResult> {
   const lockHash: string | undefined = previousLockHash(lockfile, output, file.path);
-  const diskContents: Buffer | null = await readFileIfExists(toProjectPath(projectRoot, file.path));
+  const diskContents: Buffer | null = await readFileIfExists(
+    await toProjectPath(projectRoot, file.path),
+  );
   const diskHash: string | null = diskContents === null ? null : hashContents(diskContents);
   const decision: SyncDecision = decideFile({ lockHash, diskHash, newHash: file.hash });
   return { decision, lockHash, diskContents };

@@ -158,7 +158,7 @@ export async function readLockfile(
   onMigrateStart?: LockfileMigrationNotice,
   onMigrateComplete?: LockfileMigrationNotice,
 ): Promise<Lockfile | null> {
-  const lockPath: string = toProjectPath(projectRoot, LOCKFILE_NAME);
+  const lockPath: string = await toProjectPath(projectRoot, LOCKFILE_NAME);
   const rawBytes: Buffer | null = await readFileIfExists(lockPath);
   if (rawBytes === null) {
     return null;
@@ -193,7 +193,7 @@ export async function readLockfile(
     onMigrateStart?.(onDiskVersion, LOCKFILE_VERSION);
 
     // back up the raw pre-migration content — most recent overwrite only.
-    await writeFileAtomic(toProjectPath(projectRoot, `${LOCKFILE_NAME}.bak`), raw);
+    await writeFileAtomic(await toProjectPath(projectRoot, `${LOCKFILE_NAME}.bak`), raw);
 
     let migrated: unknown;
     try {
@@ -216,7 +216,7 @@ export async function readLockfile(
 
 /** write the lockfile into a project directory (pretty-printed, trailing newline). */
 export async function writeLockfile(projectRoot: string, lockfile: Lockfile): Promise<void> {
-  const lockPath: string = toProjectPath(projectRoot, LOCKFILE_NAME);
+  const lockPath: string = await toProjectPath(projectRoot, LOCKFILE_NAME);
   const validated: Lockfile = lockfileSchema.parse(lockfile);
   await writeFileAtomic(lockPath, stringifyYaml(validated));
 }
