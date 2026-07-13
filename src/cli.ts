@@ -63,7 +63,7 @@ export function buildProgram(): Command {
 
   program
     .name("hephaestus")
-    .description("write ai agents once in markdown, forge them for your coding harness.")
+    .description("write once in markdown. forge for any harness.")
     .version(ENGINE_VERSION, "-v, --version");
 
   program

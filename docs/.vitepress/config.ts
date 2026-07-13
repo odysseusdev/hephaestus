@@ -7,7 +7,7 @@ import { defineConfig } from "vitepress";
 /** canonical site URL, served from a custom domain. */
 const SITE_URL = "https://hephaestus.odysseusdev.io";
 /** site-wide description, used for `<meta description>` and social previews. */
-const SITE_DESCRIPTION = "write ai agents once in markdown, forge them for your coding harness.";
+const SITE_DESCRIPTION = "write once in markdown. forge for any harness.";
 
 const ICONS_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "public", "icons");
 const PACKAGE_JSON_PATH = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "package.json");
