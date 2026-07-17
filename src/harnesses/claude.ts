@@ -20,8 +20,7 @@ const CLAUDE_AGENTS_DIR = ".claude/agents";
 const CLAUDE_SKILLS_DIR = ".claude/skills";
 
 /**
- * abstract tool to concrete Claude tool names. verified against Claude Code's
- * subagent tool list (July 2026). `search` covers both content and path search.
+ * abstract tool to concrete Claude tool names. verified against Claude Code's.
  */
 const CLAUDE_TOOL_MAP: Record<AbstractTool, string[]> = {
   read: ["Read"],
@@ -31,6 +30,7 @@ const CLAUDE_TOOL_MAP: Record<AbstractTool, string[]> = {
   execute: ["Bash"],
   websearch: ["WebSearch"],
   webfetch: ["WebFetch"],
+  delegate: ["Agent"],
 };
 
 /**

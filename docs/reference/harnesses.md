@@ -51,6 +51,9 @@ claude maps them like this:
 | `execute`   | `Bash`          |
 | `websearch` | `WebSearch`     |
 | `webfetch`  | `WebFetch`      |
+| `delegate`  | `Agent`         |
+
+`delegate` is ungated. any agent listing it can spawn any subagent type.
 
 ::: warning unrecognised tool values
 an unrecognised value just gets skipped: the agent gets no matching tool for it, and `forge`/`temper` prints `⚠ Unrecognised tool "<value>" for Claude harness — no output tool granted.`.

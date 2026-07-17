@@ -29,6 +29,7 @@ export const ABSTRACT_TOOLS = [
   "execute",
   "websearch",
   "webfetch",
+  "delegate",
 ] as const;
 export type AbstractTool = (typeof ABSTRACT_TOOLS)[number];
 
