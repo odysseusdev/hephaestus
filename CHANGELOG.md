@@ -1,5 +1,11 @@
 # 🔥 changelog
 
+## 0.3.1
+
+### Patch Changes
+
+- 351abb6: documented that an agent with no declared tools inherits full harness access instead of none — the sanctioned way to grant capabilities (like MCP) hephaestus has no abstract tool for. added a stderr note when this fires so it reads as intentional, not an oversight. no schema change.
+
 ## 0.3.0
 
 ### Minor Changes
