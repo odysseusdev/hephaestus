@@ -119,6 +119,12 @@ export class ClaudeHarness implements Harness {
     };
     if (tools.length > 0) {
       frontmatter.tools = tools.join(", ");
+    } else if (agent.tools.length === 0) {
+      // omitting `tools:` entirely is Claude Code's documented way to inherit every
+      // tool the harness has, MCP servers included.
+      process.stderr.write(
+        `${theme.info("ℹ")} Agent "${agent.id}" has no tools declared — inherits every Claude tool, including any configured MCP servers.\n`,
+      );
     }
     frontmatter.model = model;
 
