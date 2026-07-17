@@ -1,5 +1,15 @@
 # 🔥 changelog
 
+## 0.3.0
+
+### Minor Changes
+
+- 6f287db: added the `delegate` abstract tool, letting canonical agents spawn subagents for parallel fan-out work. maps to Claude Code's `Agent` tool (renamed from `Task` in v2.1.63). ships ungated, same as the existing seven abstract tools — no opt-in flag or allowlist mechanism. Copilot's mapping is not yet wired in (`src/harnesses/copilot.ts` doesn't exist on this branch); see the handoff for details.
+
+### Patch Changes
+
+- e4e8669: updated package.json homepage to point at the docs site instead of the readme
+
 all notable changes to this project are documented here.
 
 the format is based on [keep a changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
