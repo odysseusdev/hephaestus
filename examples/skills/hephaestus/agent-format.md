@@ -16,7 +16,7 @@ apply when authoring or reviewing a canonical agent file (`<content-dir>/agents/
 | `summary`        | string | yes      | ≤80 characters. display-only hint for the `hephaestus forge` select prompt. always write it even if `description` would fit — different reader, never derive one from the other. no "use when..." clause; that belongs in `description`. |
 | `description`    | string | yes      | 1-2 sentences, pattern "does x. use when y." injected verbatim as the harness agent description — this is what the harness reads to decide when to invoke the agent.                                                                     |
 | `tier`           | enum   | yes      | `fast` / `balanced` / `flagship`. see tier guidance below.                                                                                                                                                                               |
-| `tools`          | list   | yes      | abstract names: `read`, `write`, `edit`, `search`, `execute`, `websearch`, `webfetch`. grant only what the steps actually use.                                                                                                           |
+| `tools`          | list   | yes      | abstract names: `read`, `write`, `edit`, `search`, `execute`, `websearch`, `webfetch`, `delegate`. grant only what the steps actually use.                                                                                               |
 | `skills`         | list   | no       | skill slugs. each must have a matching directory under `<content-dir>/skills/`.                                                                                                                                                          |
 | `modelOverrides` | map    | no       | per-harness model string override. keys: `claude`, `copilot`, `codex`.                                                                                                                                                                   |
 
@@ -37,6 +37,7 @@ grant an abstract tool only when a step genuinely requires it:
 - `execute` — runs shell commands (tests, builds, git, package managers).
 - `websearch` — must verify facts that could be stale by tomorrow: current package versions, current best practices, current API docs.
 - `webfetch` — given a specific known url and needs to read that exact page, no open-ended search.
+- `delegate` — fans independent sub-tasks out to parallel subagents and collates their results itself. grants unrestricted spawning (no per-type allowlist), so only grant it where the fan-out is genuinely independent work.
 
 ## body sections (required order)
 

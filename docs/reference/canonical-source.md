@@ -28,24 +28,24 @@ each agent is a single markdown file at `agents/<id>.md`.
 
 `id` must match the filename exactly (`agents/agent-creator.md` → `id: agent-creator`).
 
-| field            | required | notes                                                                                                 |
-| ---------------- | -------- | ----------------------------------------------------------------------------------------------------- |
-| `id`             | yes      | slug. must match. filename                                                                            |
-| `name`           | yes      | lowercase display name.                                                                               |
-| `category`       | no       | slug. groups the agent for easier selection. omitted agents fall under `general`.                     |
-| `summary`        | yes      | 1–80 chars. shown as the hint when `forge`-ing. meant for humans.                                     |
-| `description`    | yes      | any non-empty string; by convention 1+ sentence, "does x. use when y.". meant for agents.             |
-| `tier`           | yes      | `fast` / `balanced` / `flagship`. maps to a model per harness.                                        |
-| `tools`          | no       | abstract set. `read`, `write`, `edit`, `search`, `execute`, `websearch`, `webfetch` defaults to `[]`. |
-| `skills`         | no       | slugs referencing directories under `skills/`. defaults to `[]`.                                      |
-| `modelOverrides` | no       | a specific model per harness, keyed by harness id, e.g. `{ claude: opus }`. wins over the tier map.   |
+| field            | required | notes                                                                                                             |
+| ---------------- | -------- | ----------------------------------------------------------------------------------------------------------------- |
+| `id`             | yes      | slug. must match. filename                                                                                        |
+| `name`           | yes      | lowercase display name.                                                                                           |
+| `category`       | no       | slug. groups the agent for easier selection. omitted agents fall under `general`.                                 |
+| `summary`        | yes      | 1–80 chars. shown as the hint when `forge`-ing. meant for humans.                                                 |
+| `description`    | yes      | any non-empty string; by convention 1+ sentence, "does x. use when y.". meant for agents.                         |
+| `tier`           | yes      | `fast` / `balanced` / `flagship`. maps to a model per harness.                                                    |
+| `tools`          | no       | abstract set. `read`, `write`, `edit`, `search`, `execute`, `websearch`, `webfetch`, `delegate` defaults to `[]`. |
+| `skills`         | no       | slugs referencing directories under `skills/`. defaults to `[]`.                                                  |
+| `modelOverrides` | no       | a specific model per harness, keyed by harness id, e.g. `{ claude: opus }`. wins over the tier map.               |
 
 `id`, `name`, `summary`, `description`, and `tier` must be present and valid or hephaestus rejects the file with a field-by-field error.
 
 everything else is silently ignored, so independently-maintained canon files can carry custom metadata without breaking on a hephaestus upgrade.
 
 ::: warning tool values aren't validated
-`tools` accepts any string, not just the seven names above. an unrecognised value doesn't fail loading, it just means no harness maps it to anything.
+`tools` accepts any string, not just the eight names above. an unrecognised value doesn't fail loading, it just means no harness maps it to anything.
 
 see [abstract tools](/reference/harnesses#abstract-tools) for what that looks like at forge time.
 :::
