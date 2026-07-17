@@ -9,7 +9,7 @@
 ![license](https://img.shields.io/badge/license-MIT-a6da95?style=for-the-badge&labelColor=363a4f)
 
 ![claude code](https://img.shields.io/badge/claude_code-supported-c6a0f6?style=for-the-badge&labelColor=363a4f&)
-![copilot](https://img.shields.io/badge/copilot-coming_soon-6e738d?style=for-the-badge&labelColor=363a4f&)
+![copilot](https://img.shields.io/badge/copilot-supported-c6a0f6?style=for-the-badge&labelColor=363a4f&)
 ![codex](https://img.shields.io/badge/codex-coming_soon-6e738d?style=for-the-badge&labelColor=363a4f)
 
 **_forging ai agents fit for the gods._**
@@ -28,7 +28,7 @@ hephaestus is a cli that provisions ai agents and skills from a single canonical
 
 you write an agent once, as a markdown file with a bit of frontmatter. hephaestus forges it into whatever coding harness you point it at, then tempers them on demand as the source changes.
 
-- **harness-agnostic** — one canonical source, forged for every harness. pick any combination per project. claude code ships today, copilot and codex are next.
+- **harness-agnostic** — one canonical source, forged for every harness. pick any combination per project. claude code and copilot ship today, codex is next.
 - **unopinionated** — hephaestus forges anything, so long as it takes a shape: a directory structure and a handful of frontmatter fields. everything else is yours to write.
 - **provision only what you need** — your canon can hold every agent you've ever written. each forge only provisions the ones you pick, skills included.
 

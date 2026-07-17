@@ -1,14 +1,16 @@
 import type { HarnessId } from "../core/schema.js";
 import { ClaudeHarness } from "./claude.js";
+import { CopilotHarness } from "./copilot.js";
 import type { Harness } from "./types.js";
 
 /**
- * registry of implemented harnesses. Claude is wired in for the first milestone;
- * Copilot and Codex are added here during the fan-out phase, at which point they
- * automatically appear in the `init` harness picker and `list` output.
+ * registry of implemented harnesses. Claude and Copilot are wired in; Codex is
+ * not yet implemented. a harness only needs one line here to automatically
+ * appear in the `forge` harness picker and `inventory` output.
  */
 const REGISTRY: ReadonlyMap<HarnessId, Harness> = new Map<HarnessId, Harness>([
   ["claude", new ClaudeHarness()],
+  ["copilot", new CopilotHarness()],
 ]);
 
 /** all currently implemented harnesses, in registration order. */
