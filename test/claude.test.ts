@@ -105,6 +105,22 @@ describe("ClaudeHarness — tool mapping", () => {
     expect(parseMatter(rendered).data.tools).toBe("Agent");
   });
 
+  it("renders with no tools key and notes MCP inheritance on stderr when tools is empty", () => {
+    const writeSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const agent: CanonicalAgent = { ...AGENT, tools: [] };
+
+    const rendered = harness.renderAgent(agent, ctx("fast"), skills);
+
+    expect(parseMatter(rendered).data.tools).toBeUndefined();
+    expect(writeSpy).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Agent "planner" has no tools declared — inherits every Claude tool, including any configured MCP servers.',
+      ),
+    );
+
+    writeSpy.mockRestore();
+  });
+
   it("warns to stderr and does not throw on an unrecognised tool", () => {
     const writeSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const agent: CanonicalAgent = { ...AGENT, tools: ["not-a-real-tool"] };
@@ -115,6 +131,17 @@ describe("ClaudeHarness — tool mapping", () => {
         'Unrecognised tool "not-a-real-tool" for Claude harness — no output tool granted.',
       ),
     );
+
+    writeSpy.mockRestore();
+  });
+
+  it("does not claim 'no tools declared' when tools were declared but all unrecognised", () => {
+    const writeSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const agent: CanonicalAgent = { ...AGENT, tools: ["not-a-real-tool"] };
+
+    harness.renderAgent(agent, ctx("fast"), skills);
+
+    expect(writeSpy).not.toHaveBeenCalledWith(expect.stringContaining("has no tools declared"));
 
     writeSpy.mockRestore();
   });

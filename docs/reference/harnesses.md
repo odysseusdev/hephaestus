@@ -55,10 +55,14 @@ claude maps them like this:
 
 `delegate` is ungated. any agent listing it can spawn any subagent type.
 
-::: warning unrecognised tool values
-an unrecognised value just gets skipped: the agent gets no matching tool for it, and `forge`/`temper` prints `⚠ Unrecognised tool "<value>" for Claude harness — no output tool granted.`.
+::: details what does empty tools mean?
+leaving `tools` empty or omitting it entirely is the sanctioned way to inherit every tool claude code offers. useful when a step needs capability beyond the abstract set above, such as MCP-provided tools.
 
-if an agent seems to be missing a tool you expected, check for this warning first. see [agent frontmatter](/reference/canonical-source#agent-frontmatter) for why this is allowed at all.
+this is all-or-nothing. the agent trades away granular scoping in exchange for that broader reach. so reserve it for genuine gaps in the abstract set.
+:::
+
+::: warning unrecognised tool values
+skipped silently. `forge`/`temper` logs `⚠ Unrecognised tool "<value>" for Claude harness — no output tool granted.`. see [agent frontmatter](/reference/canonical-source#agent-frontmatter) for why this is allowed.
 :::
 
 ### model tiers

@@ -37,17 +37,21 @@ grant an abstract tool only when a step genuinely requires it:
 - `execute` — runs shell commands (tests, builds, git, package managers).
 - `websearch` — must verify facts that could be stale by tomorrow: current package versions, current best practices, current API docs.
 - `webfetch` — given a specific known url and needs to read that exact page, no open-ended search.
-- `delegate` — fans independent sub-tasks out to parallel subagents and collates their results itself. grants unrestricted spawning (no per-type allowlist), so only grant it where the fan-out is genuinely independent work.
+- `delegate` — fans out an independent, narrowly-scoped subtask to run in parallel (e.g. multiple deep-dive research tasks that don't depend on each other); note a delegated subagent instance has no access to the calling agent's own declared skills, so the dispatch prompt must carry all necessary context and rules directly, not by reference to a skill.
+
+leaving `tools` empty or omitting it entirely is the sanctioned way to inherit every tool the harness offers, for when a step needs capability beyond the fixed abstract set above, such as MCP-provided tools. this is all-or-nothing — the agent trades away granular scoping in exchange for that broader reach — so reserve it for genuine gaps in the abstract set, not as a shortcut around picking the specific tools a step actually uses.
 
 ## body sections (required order)
 
 every agent body must contain these five sections, in this exact order — do not add, rename, or reorder:
 
 1. **role** — one sentence: who this agent is, its primary responsibility.
-2. **when to use** — 2-3 sentences. contrasts with adjacent agents so the caller knows which one to pick.
+2. **when to use** — 2-3 sentences. contrasts with adjacent concerns so the caller knows when this agent doesn't apply — describe the adjacent concern by scope (e.g. "creating a brand-new file" vs "editing an existing one", or "external web research" vs "codebase research"), never by naming another agent's specific id, since no other agent's presence in the roster is guaranteed.
 3. **steps** — numbered list, max 12. each step is one atomic, independently verifiable action. include an explicit step for reporting blockers (missing permissions, an unavailable tool, ambiguous input) back to the caller rather than proceeding or failing silently. the final step always writes the handoff — see the `agent-output` skill for the format and where to write it.
 4. **boundaries** — 3-6 bullets. hard constraints, imperative, not advisory.
 5. **your skills** — always last. body is exactly `{{skills}}`, nothing else.
+
+hard constraint: never name another agent's specific id/slug anywhere in the body, in "when to use" or elsewhere — phrase any contrast generically by concern or scope instead, since no other agent's presence in the roster is guaranteed.
 
 ## known template tokens
 
@@ -56,7 +60,7 @@ every agent body must contain these five sections, in this exact order — do no
 | `{{output}}` | the configured output directory for handoffs and other artifacts rendered as a project-relative path. resolve it against the actual project root at runtime — see the `agent-output` skill's resolution rules. |
 | `{{skills}}` | markdown table of links to each referenced skill's content files.                                                                                                                                              |
 
-unknown tokens pass through unchanged at render time — only `{{output}}` and `{{skills}}` are expanded.
+unknown tokens are rejected at load time.
 
 ## handoff filename convention
 
