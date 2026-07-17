@@ -27,7 +27,7 @@
   "bugs": {
     "url": "https://github.com/odysseusdev/hephaestus/issues"
   },
-  "homepage": "https://github.com/odysseusdev/hephaestus#readme",
+  "homepage": "https://hephaestus.odysseusdev.io/",
   "publishConfig": {
     "access": "public"
   },
