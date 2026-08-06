@@ -97,20 +97,20 @@ a skill with more than one content file lists all of them, comma-separated, in t
 
 ### output
 
-| type  | written to                             |
-| ----- | --------------------------------------- |
-| agent | `.github/agents/<id>.agent.md`          |
-| skill | `.github/skills/<skill-name>/<file>`    |
+| type  | written to                           |
+| ----- | ------------------------------------ |
+| agent | `.github/agents/<id>.agent.md`       |
+| skill | `.github/skills/<skill-name>/<file>` |
 
 **agents**
 
 agent files are markdown with YAML frontmatter, shared (with caveats) across VS Code, Copilot CLI, and the Copilot cloud agent. frontmatter is deliberately limited to the portable intersection all three surfaces accept.
 
-| field         | source                                                                      |
-| ------------- | --------------------------------------------------------------------------- |
-| `name`        | the agent's `id`                                                            |
-| `description` | copied verbatim from canonincal source frontmatter                          |
-| `tools`       | canon `tools` mapped through the table below (omitted if the list is empty) |
+| field         | source                                                                                                                  |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `name`        | the agent's `id`                                                                                                        |
+| `description` | copied verbatim from canonincal source frontmatter                                                                      |
+| `tools`       | canon `tools` mapped through the table below (omitted if the list is empty)                                             |
 | `model`       | resolved from `tier` (or `modelOverrides.copilot`, which wins outright); always a scalar string, never a fallback array |
 
 VS Code-only fields (`argument-hint`, `handoffs`, `agents`, `hooks`) are never emitted, and `model` is never emitted as an array — Copilot CLI rejects the array fallback-list form VS Code accepts ([`copilot-cli#2133`](https://github.com/github/copilot-cli/issues/2133)).
@@ -124,15 +124,15 @@ skill files are copied through with their original filename (`conventions.md` st
 copilot maps them like this:
 
 | abstract    | copilot concrete |
-| ----------- | ----------------- |
-| `read`      | `read`             |
-| `write`     | `edit`             |
-| `edit`      | `edit`             |
-| `search`    | `search`           |
-| `execute`   | `execute`          |
-| `websearch` | `web`              |
-| `webfetch`  | `web`              |
-| `delegate`  | `agent`            |
+| ----------- | ---------------- |
+| `read`      | `read`           |
+| `write`     | `edit`           |
+| `edit`      | `edit`           |
+| `search`    | `search`         |
+| `execute`   | `execute`        |
+| `websearch` | `web`            |
+| `webfetch`  | `web`            |
+| `delegate`  | `agent`          |
 
 copilot has no separate `write` alias — write operations fall under `edit` — and `web` covers both search and fetch.
 
@@ -146,11 +146,11 @@ an unrecognised value just gets skipped: the agent gets no matching tool for it,
 
 copilot maps tiers like this:
 
-| tier       | copilot model      |
-| ---------- | ------------------ |
-| `fast`     | Claude Haiku 4.5    |
-| `balanced` | Claude Sonnet 4.6   |
-| `flagship` | Claude Opus 4.6     |
+| tier       | copilot model     |
+| ---------- | ----------------- |
+| `fast`     | Claude Haiku 4.5  |
+| `balanced` | Claude Sonnet 4.6 |
+| `flagship` | Claude Opus 4.6   |
 
 `modelOverrides.copilot` wins over this map outright, if set.
 
