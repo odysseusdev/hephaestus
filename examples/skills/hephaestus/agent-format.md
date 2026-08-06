@@ -8,17 +8,17 @@ apply when authoring or reviewing a canonical agent file (`<content-dir>/agents/
 
 ## frontmatter fields
 
-| field            | type   | required | notes                                                                                                                                                                                                                                    |
-| ---------------- | ------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`             | slug   | yes      | lowercase, hyphen-separated. must match the filename (`my-agent` → `my-agent.md`).                                                                                                                                                       |
-| `name`           | string | yes      | lowercase display name.                                                                                                                                                                                                                  |
-| `category`       | slug   | no       | groups the agent in the forge agent-select prompt. same slug format as `id`. omit only for the CLI's default `"general"` bucket (sorts last).                                                                                            |
+| field            | type   | required | notes                                                                                                                                                                                                                                                |
+| ---------------- | ------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`             | slug   | yes      | lowercase, hyphen-separated. must match the filename (`my-agent` → `my-agent.md`).                                                                                                                                                                   |
+| `name`           | string | yes      | lowercase display name.                                                                                                                                                                                                                              |
+| `category`       | slug   | no       | groups the agent in the forge agent-select prompt. same slug format as `id`. omit only for the CLI's default `"general"` bucket (sorts last).                                                                                                        |
 | `summary`        | string | yes      | ≤80 characters. display-only hint for the `hephaestus forge` select prompt. always write it even if `description` would fit, since it's a different reader. never derive one from the other. no "use when..." clause; that belongs in `description`. |
-| `description`    | string | yes      | 1-2 sentences, pattern "does x. use when y." injected verbatim as the harness agent description; this is what the harness reads to decide when to invoke the agent.                                                                     |
-| `tier`           | enum   | yes      | `fast` / `balanced` / `flagship`. see tier guidance below.                                                                                                                                                                               |
-| `tools`          | list   | yes      | abstract names: `read`, `write`, `edit`, `search`, `execute`, `websearch`, `webfetch`, `delegate`. grant only what the steps actually use.                                                                                               |
-| `skills`         | list   | no       | skill slugs. each must have a matching directory under `<content-dir>/skills/`.                                                                                                                                                          |
-| `modelOverrides` | map    | no       | per-harness model string override. keys: `claude`, `copilot`, `codex`.                                                                                                                                                                   |
+| `description`    | string | yes      | 1-2 sentences, pattern "does x. use when y." injected verbatim as the harness agent description; this is what the harness reads to decide when to invoke the agent.                                                                                  |
+| `tier`           | enum   | yes      | `fast` / `balanced` / `flagship`. see tier guidance below.                                                                                                                                                                                           |
+| `tools`          | list   | yes      | abstract names: `read`, `write`, `edit`, `search`, `execute`, `websearch`, `webfetch`, `delegate`. grant only what the steps actually use.                                                                                                           |
+| `skills`         | list   | no       | skill slugs. each must have a matching directory under `<content-dir>/skills/`.                                                                                                                                                                      |
+| `modelOverrides` | map    | no       | per-harness model string override. keys: `claude`, `copilot`, `codex`.                                                                                                                                                                               |
 
 ## tier guidance
 
@@ -55,10 +55,10 @@ hard constraint: never name another agent's specific id/slug anywhere in the bod
 
 ## known template tokens
 
-| token        | expands to                                                                                                                                                                                                     |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| token        | expands to                                                                                                                                                                                                    |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `{{output}}` | the configured output directory for handoffs and other artifacts rendered as a project-relative path. resolve it against the actual project root at runtime. see the `agent-output` skill's resolution rules. |
-| `{{skills}}` | markdown table of links to each referenced skill's content files.                                                                                                                                              |
+| `{{skills}}` | markdown table of links to each referenced skill's content files.                                                                                                                                             |
 
 unknown tokens are rejected at load time.
 
