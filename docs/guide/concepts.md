@@ -53,7 +53,7 @@ a harness is a target coding tool hephaestus provisions agents and skills into.
 hephaestus defines the concrete output paths, the tool-name mapping, and how agents and skills gets rendered for that tool.
 
 ::: details which harnesses are available?
-claude code is currently available. copilot and codex are reserved identifiers for future releases.
+claude code and copilot are currently available. codex is a reserved identifier for a future release.
 :::
 
 each project selects one or more harnesses at `forge` time, and the same canononical source renders differently for each.

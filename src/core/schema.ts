@@ -9,8 +9,8 @@ export type Tier = (typeof TIERS)[number];
 export const tierSchema = z.enum(TIERS);
 
 /**
- * supported harness identifiers. only `claude` is wired into the registry today;
- * `copilot` and `codex` are reserved and added in the fan-out phase.
+ * supported harness identifiers. `claude` and `copilot` are wired into the
+ * registry today; `codex` is reserved and not yet implemented.
  */
 export const HARNESS_IDS = ["claude", "copilot", "codex"] as const;
 export type HarnessId = (typeof HARNESS_IDS)[number];

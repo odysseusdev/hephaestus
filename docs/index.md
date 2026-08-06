@@ -22,7 +22,7 @@ features:
       light: /icons/tree-structure-light.svg
       dark: /icons/tree-structure-dark.svg
     title: harness-agnostic
-    details: one canonical source, forged for every harness. pick any combination per project.<br><br>claude code ships today, copilot and codex are next.
+    details: one canonical source, forged for every harness. pick any combination per project.<br><br>claude code and copilot ship today, codex is next.
   - icon:
       light: /icons/frame-corners-light.svg
       dark: /icons/frame-corners-dark.svg
