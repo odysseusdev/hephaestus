@@ -17,7 +17,7 @@ each skill is a directory under `<content-dir>/skills/<slug>/`. the slug is lowe
 
 ## frontmatter
 
-skill frontmatter is passed through to the harness unchanged — no schema validation is applied. by convention, always include exactly one field:
+skill frontmatter is passed through to the harness unchanged. no schema validation is applied. by convention, always include exactly one field:
 
 ```yaml
 ---

@@ -4,7 +4,7 @@ description: how to resolve the agent output directory. apply before writing any
 
 # resolving the output directory
 
-the output directory arrives as a project-relative path (e.g. `.hephaestus`, `docs`) — treat it as opaque, never invent, rename, or normalise it.
+the output directory arrives as a project-relative path (e.g. `.hephaestus`, `docs`). treat it as opaque, never invent, rename, or normalise it.
 
 ## finding-the-project-root
 
@@ -13,9 +13,9 @@ the output directory arrives as a project-relative path (e.g. `.hephaestus`, `do
 
 ## locating-the-directory
 
-- join the project root with the relative output path — do not resolve it any other way.
-- check the filesystem directly (`test -d`, `ls`) for existence — never infer existence from `git status` or `git ls-files`, since the directory may be empty, untracked, or gitignored and so invisible to git.
-- if writing into a named subdirectory (e.g. `handoffs/`, `research/`) and it doesn't exist yet, create it directly — no confirmation needed, it's scoped inside the already-resolved output directory.
+- join the project root with the relative output path. do not resolve it any other way.
+- check the filesystem directly (`test -d`, `ls`) for existence. never infer existence from `git status` or `git ls-files`, since the directory may be empty, untracked, or gitignored and so invisible to git.
+- if writing into a named subdirectory (e.g. `handoffs/`, `research/`) and it doesn't exist yet, create it directly. no confirmation needed, it's scoped inside the already-resolved output directory.
 
 ## when-not-found
 
