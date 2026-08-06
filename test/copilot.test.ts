@@ -137,6 +137,12 @@ describe("CopilotHarness — tool mapping", () => {
     expect(parseMatter(rendered).data.tools).toBe("search, execute");
   });
 
+  it("maps delegate to agent", () => {
+    const agent: CanonicalAgent = { ...AGENT, tools: ["delegate"] };
+    const rendered = harness.renderAgent(agent, ctx("fast"), skills);
+    expect(parseMatter(rendered).data.tools).toBe("agent");
+  });
+
   it("warns to stderr and does not throw on an unrecognised tool", () => {
     const writeSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const agent: CanonicalAgent = { ...AGENT, tools: ["not-a-real-tool"] };

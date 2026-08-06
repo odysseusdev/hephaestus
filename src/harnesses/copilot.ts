@@ -27,7 +27,8 @@ const COPILOT_SKILLS_DIR = ".github/skills";
  * documented compatible names include `Edit`, `MultiEdit`, `Write`,
  * `NotebookEdit`). `web` covers both web search and web fetch (documented
  * compatible names `WebSearch`, `WebFetch`); `search` covers both content and
- * path search (documented compatible names `Grep`, `Glob`).
+ * path search (documented compatible names `Grep`, `Glob`); `agent` covers
+ * subagent delegation.
  */
 const COPILOT_TOOL_MAP: Record<AbstractTool, string[]> = {
   read: ["read"],
@@ -37,6 +38,7 @@ const COPILOT_TOOL_MAP: Record<AbstractTool, string[]> = {
   execute: ["execute"],
   websearch: ["web"],
   webfetch: ["web"],
+  delegate: ["agent"],
 };
 
 /**

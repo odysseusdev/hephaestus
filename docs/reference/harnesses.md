@@ -132,8 +132,11 @@ copilot maps them like this:
 | `execute`   | `execute`          |
 | `websearch` | `web`              |
 | `webfetch`  | `web`              |
+| `delegate`  | `agent`            |
 
 copilot has no separate `write` alias — write operations fall under `edit` — and `web` covers both search and fetch.
+
+`delegate` is ungated, same as claude: any agent listing it can spawn any subagent type. see the claude section above for why.
 
 ::: warning unrecognised tool values
 an unrecognised value just gets skipped: the agent gets no matching tool for it, and `forge`/`temper` prints `⚠ Unrecognised tool "<value>" for Copilot harness — no output tool granted.`.
