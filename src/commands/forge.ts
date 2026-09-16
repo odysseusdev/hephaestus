@@ -122,7 +122,7 @@ export async function runForge(options: ForgeOptions): Promise<void> {
   const harnesses: HarnessId[] = await multiselect(
     "which harnesses do you want to target?",
     harnessOptions,
-    harnessOptions.map((option) => option.value),
+    [],
   );
 
   const outputDir: string = await text(
