@@ -1,5 +1,11 @@
 # 🔥 changelog
 
+## 0.4.1
+
+### Patch Changes
+
+- 674f6bc: forge's harness multiselect prompt now defaults to none selected instead of all selected. pick the harness(es) you want instead of deselecting the ones you don't.
+
 ## 0.4.0
 
 ### Minor Changes
